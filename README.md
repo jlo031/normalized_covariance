@@ -17,8 +17,8 @@ It is recommended the code in a dedicated virtual environment:
     conda create -y --name NORMPROD -c conda-forge gdal rasterio geopandas numpy scipy loguru matplotlib pyyaml
     conda activate NORMPROD
 
-    # Install additional interactive tools
-    pip install ipython
+    # Install additional dependencies
+    pip install ipython xarray odc-stac odc-stac[botocore] odc-geo stac-geoparquet pystac pystac-client fsspec shapely aiohttp
 
 ---
 
@@ -47,7 +47,8 @@ You can install this library directly from GitHub or locally after cloning the r
 
 Test scripts and usage examples are provided in the `test/` and `examples/` folders.
 
-* **examples:** Contains a "quick and dirty" script that runs through the entire processing chain for a single image pair.
+* **examples/process_single_img_pair_locally.py:** Script that runs the entire processing chain for a single image pair from local GeoTIFF files.
+* **examples/normprod_from_stac_xarray.ipynb:** Notebook that runs the full NormProd pipeline entirely in-memory on xarray DataArrays queried from STAC — no intermediate files are written.
 * **examples/hpc_support:** Examples subfolder with setup for distributed batch processing, specifically designed for the **NCI/GADI** supercomputing environment.
 
 Unless you are developing the code further, there is no need to run or modify the contents of the `test/` folder.
