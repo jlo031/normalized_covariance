@@ -99,7 +99,7 @@ pbs_run_script: "./utils/run_single_pair_as_separate_job.py"
 # Set path to log_dir for distributed batch processing
 # Place this wherever you want to keep track of your processing
 # Individual PBS scripts will also be saved here
-pbs_log_dir: "./batch_processing_logs/McMurdo/logs"
+pbs_log_dir: "./batch_processing_logs/mcmurdo_appendix/logs"
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #

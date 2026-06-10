@@ -1,0 +1,83 @@
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:82 - IMG_PAIR_DIR: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:83 - window_list: [11, 21, 33]
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:84 - Save intermediates: True
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:85 - NP_min: -0.5
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:86 - NP_max: 1.0
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:87 - landmask_shapefile_path: /g/data/jk72/jl0818/DATA/fast_ice_tests/coastline_shapefiles/add_coastline_high_res_polygon_v7_10/add_coastline_high_res_polygon_v7_10.shp
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:88 - erode_landmask: 100
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:89 - resample: True
+2026-04-23 16:33:49.098 | INFO     | __main__:run_single_pair:90 - resample_interval: 10
+2026-04-23 16:34:38.796 | INFO     | normalized_product.normprod:fully_process_single_image_pair:402 - Starting full normprod processing chain for img_pair_dir...
+2026-04-23 16:34:38.799 | INFO     | normalized_product.normprod:fully_process_single_image_pair:431 - Found 2 georeg*tif files in img_pair_dir:
+2026-04-23 16:34:38.799 | INFO     | normalized_product.normprod:fully_process_single_image_pair:433 - georeg_1: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031.tif
+2026-04-23 16:34:38.799 | INFO     | normalized_product.normprod:fully_process_single_image_pair:433 - georeg_2: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031.tif
+2026-04-23 16:34:38.799 | INFO     | normalized_product.normprod:fully_process_single_image_pair:441 - Computing DoB, local_std, and normprod_smovar for the following window sizes: [11, 21, 33]
+2026-04-23 16:34:38.799 | INFO     | normalized_product.normprod:fully_process_single_image_pair:454 - Computing DoB and local std for window: 11
+2026-04-23 16:34:38.800 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=11...
+2026-04-23 16:35:24.629 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031_DoB_window11.tif
+2026-04-23 16:35:24.745 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=11...
+2026-04-23 16:36:07.619 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031_DoB_window11.tif
+2026-04-23 16:36:07.732 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=11...
+2026-04-23 16:37:25.318 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031_local_std_window11.tif
+2026-04-23 16:37:25.776 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=11...
+2026-04-23 16:38:58.526 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031_local_std_window11.tif
+2026-04-23 16:38:58.975 | INFO     | normalized_product.normprod:fully_process_single_image_pair:474 - Computing normprod_smovar for window: 11
+2026-04-23 16:38:58.975 | INFO     | normalized_product.normprod:compute_normprod:167 - Starting normprod_smovar computation for w=11...
+2026-04-23 16:57:37.608 | INFO     | normalized_product.normprod:compute_normprod:355 - Saved normprod_smovar: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/normprod_smovar_window11.tif.
+2026-04-23 16:57:37.795 | INFO     | normalized_product.normprod:fully_process_single_image_pair:454 - Computing DoB and local std for window: 21
+2026-04-23 16:57:37.796 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=21...
+2026-04-23 16:57:53.785 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031_DoB_window21.tif
+2026-04-23 16:57:53.805 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=21...
+2026-04-23 16:58:10.270 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031_DoB_window21.tif
+2026-04-23 16:58:10.284 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=21...
+2026-04-23 16:58:42.372 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031_local_std_window21.tif
+2026-04-23 16:58:42.467 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=21...
+2026-04-23 16:59:15.804 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031_local_std_window21.tif
+2026-04-23 16:59:15.891 | INFO     | normalized_product.normprod:fully_process_single_image_pair:474 - Computing normprod_smovar for window: 21
+2026-04-23 16:59:15.891 | INFO     | normalized_product.normprod:compute_normprod:167 - Starting normprod_smovar computation for w=21...
+2026-04-23 17:21:00.308 | INFO     | normalized_product.normprod:compute_normprod:355 - Saved normprod_smovar: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/normprod_smovar_window21.tif.
+2026-04-23 17:21:00.429 | INFO     | normalized_product.normprod:fully_process_single_image_pair:454 - Computing DoB and local std for window: 33
+2026-04-23 17:21:00.429 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=33...
+2026-04-23 17:21:18.922 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031_DoB_window33.tif
+2026-04-23 17:21:18.931 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=33...
+2026-04-23 17:21:37.942 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031_DoB_window33.tif
+2026-04-23 17:21:37.957 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=33...
+2026-04-23 17:21:58.214 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_1_20210716_EPSG3031_local_std_window33.tif
+2026-04-23 17:21:58.222 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=33...
+2026-04-23 17:22:18.455 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/georeg_2_20210728_EPSG3031_local_std_window33.tif
+2026-04-23 17:22:18.467 | INFO     | normalized_product.normprod:fully_process_single_image_pair:474 - Computing normprod_smovar for window: 33
+2026-04-23 17:22:18.467 | INFO     | normalized_product.normprod:compute_normprod:167 - Starting normprod_smovar computation for w=33...
+2026-04-23 17:48:16.523 | INFO     | normalized_product.normprod:compute_normprod:355 - Saved normprod_smovar: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/normprod_smovar_window33.tif.
+2026-04-23 17:48:16.578 | INFO     | normalized_product.normprod:fully_process_single_image_pair:488 - Stacking to false-color RGB
+2026-04-23 17:48:16.581 | INFO     | normalized_product.normprod_utils:stack_2_RGB:430 - Starting to stack images to RGB...
+2026-04-23 17:48:38.639 | INFO     | normalized_product.normprod_utils:stack_2_RGB:507 - Saved RGB image: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/normprod_smovar_RGB.tif
+2026-04-23 17:48:38.649 | INFO     | normalized_product.normprod:fully_process_single_image_pair:520 - Resampling RGB image
+2026-04-23 17:48:38.649 | INFO     | normalized_product.normprod_utils:resample_geotiff:539 - Starting resampling of geotiff file...
+2026-04-23 17:48:43.460 | INFO     | normalized_product.normprod:fully_process_single_image_pair:542 - Creating landmask image
+2026-04-23 17:48:43.461 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:671 - Starting to rasterize landmask...
+2026-04-23 17:51:31.660 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:716 - Finished landmask raster
+2026-04-23 17:51:35.151 | INFO     | normalized_product.normprod_utils:save_landmask_file_4_geotiff:807 - Saved landmask: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/landmask.tif
+2026-04-23 17:51:35.152 | INFO     | normalized_product.normprod:fully_process_single_image_pair:561 - Creating resampled landmask image
+2026-04-23 17:51:35.153 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:671 - Starting to rasterize landmask...
+2026-04-23 17:51:50.490 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:716 - Finished landmask raster
+2026-04-23 17:51:52.693 | INFO     | normalized_product.normprod_utils:save_landmask_file_4_geotiff:807 - Saved landmask: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/landmask_resampled_10_10.tif
+2026-04-23 17:51:52.693 | INFO     | normalized_product.normprod:fully_process_single_image_pair:581 - Creating eroded landmask image
+2026-04-23 17:51:52.694 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:671 - Starting to rasterize landmask...
+2026-04-23 17:53:42.730 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:716 - Finished landmask raster
+2026-04-23 17:53:42.730 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:725 - Eroding landmask: 100 pixels
+2026-04-23 17:53:47.368 | INFO     | normalized_product.normprod_utils:save_landmask_file_4_geotiff:807 - Saved landmask: /g/data/jk72/jl0818/DATA/fast_ice_tests/Prydz_new/S1_image_pair_20210716T152833_20210728T152834/landmask_eroded_100.tif
+2026-04-23 17:53:47.369 | INFO     | normalized_product.normprod:fully_process_single_image_pair:600 - Resampling eroded resampled landmask image
+2026-04-23 17:53:47.369 | INFO     | normalized_product.normprod_utils:resample_geotiff:539 - Starting resampling of geotiff file...
+2026-04-23 17:53:48.027 | SUCCESS  | __main__:run_single_pair:109 - Processing complete.
+
+======================================================================================
+                  Resource Usage on 2026-04-23 17:53:59:
+   Job Id:             166858570.gadi-pbs
+   Project:            jk72
+   Exit Status:        0
+   Service Units:      16.15
+   NCPUs Requested:    2                   CPU Time Used: 01:16:38        
+   Memory Requested:   24.0GB                Memory Used: 15.11GB         
+   Walltime Requested: 03:00:00            Walltime Used: 01:20:44        
+   JobFS Requested:    100.0MB                JobFS Used: 0B              
+======================================================================================

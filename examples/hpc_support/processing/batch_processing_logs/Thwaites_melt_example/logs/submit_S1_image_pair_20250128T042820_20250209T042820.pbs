@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -P jk72
+#PBS -q normal
+#PBS -l walltime=03:00:00
+#PBS -l mem=24GB
+#PBS -l ncpus=2
+#PBS -l wd
+#PBS -l storage=gdata/fj7+scratch/jk72+gdata/jk72+gdata/yp75+gdata/gv90
+#PBS -N PBS_JOB_S1_image_pair_20250128T042820_20250209T042820
+#PBS -o /home/581/jl0818/work/normalized_product/examples/hpc_support/processing/batch_processing_logs/Thwaites_melt_example/logs/PBS_JOB_S1_image_pair_20250128T042820_20250209T042820.o
+#PBS -e /home/581/jl0818/work/normalized_product/examples/hpc_support/processing/batch_processing_logs/Thwaites_melt_example/logs/PBS_JOB_S1_image_pair_20250128T042820_20250209T042820.e
+
+source /g/data/jk72/jl0818/miniconda3_jo/etc/profile.d/conda.sh
+conda activate NORMPROD
+
+# added -u option for unbuffered processing, giving continuous logfile updates
+python3 -u /home/581/jl0818/work/normalized_product/examples/hpc_support/processing/utils/run_single_pair_as_separate_job.py "/g/data/jk72/jl0818/DATA/fast_ice_tests/Thwaites/S1_image_pair_20250128T042820_20250209T042820" "[11, 21, 33]" "False" "-0.5" "1.0" "/g/data/jk72/jl0818/DATA/fast_ice_tests/coastline_shapefiles/add_coastline_high_res_polygon_v7_10/add_coastline_high_res_polygon_v7_10.shp" "100" "True" "10" "INFO"
