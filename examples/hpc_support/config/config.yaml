@@ -18,10 +18,11 @@
 # -------------------------------------------------------------------------- #
 
 # Set path to main data directory
-data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_tests"
+data_dir: "/g/data/yp75/sb2020/DATA"
 
 # Define study site
-site: "McMurdo"
+# site: "Prydz"
+site: "Prydz_AWS_test"
 
 # Set min and max values for allowed temporal baseline
 min_temp_baseline: 11.9
@@ -57,7 +58,7 @@ NP_min: -0.5
 NP_max: 1.0
 
 # Set path to landmask shapefile
-landmask_shapefile_path: "/g/data/jk72/jl0818/DATA/fast_ice_tests/coastline_shapefiles/add_coastline_high_res_polygon_v7_10/add_coastline_high_res_polygon_v7_10.shp"
+landmask_shapefile_path: "/g/data/yp75/sb2020/DATA/coastline_shapefiles/add_coastline_high_res_polygon_v7_5/add_coastline_high_res_polygon_v7_5.shp"
 
 # Set landmask erosion in number of pixels on full resolution image
 # The workflow will produce a true and an eroded landmask
@@ -83,10 +84,12 @@ loglevel: INFO
 
 # Set path to your local conda.sh file
 # Required to activate anaconda environment during distributed normprod processing
-conda_sh: "/g/data/jk72/jl0818/miniconda3_jo/etc/profile.d/conda.sh"
+# conda_sh: "/g/data/xp65/public/apps/med_conda/etc/profile.d/conda.sh"
+conda_sh: ""
 
 # Set name of conda environment for normprod processing
-conda_env: "NORMPROD"
+##conda_env: "NORMPROD"
+conda_env: "/g/data/yp75/sb2020/conda_envs/NORMPROD"
 
 # Set path to pbs_template file
 # Recommended to keep in your local 'config' folder
@@ -99,7 +102,8 @@ pbs_run_script: "./utils/run_single_pair_as_separate_job.py"
 # Set path to log_dir for distributed batch processing
 # Place this wherever you want to keep track of your processing
 # Individual PBS scripts will also be saved here
-pbs_log_dir: "./batch_processing_logs/mcmurdo_appendix/logs"
+# pbs_log_dir: "./Prydz_logs"
+pbs_log_dir: "./Prydz_AWS_test_logs"
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #

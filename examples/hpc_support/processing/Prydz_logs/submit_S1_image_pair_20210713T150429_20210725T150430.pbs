@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -P u46
+#PBS -q normal
+#PBS -l walltime=03:00:00
+#PBS -l mem=24GB
+#PBS -l ncpus=2
+#PBS -l wd
+#PBS -l storage=gdata/fj7+scratch/jk72+gdata/yp75+gdata/gv90+gdata/xp65
+#PBS -N PBS_JOB_S1_image_pair_20210713T150429_20210725T150430
+#PBS -o /g/data/yp75/sb2020/work/NP_batch_processing/processing/Prydz_logs/PBS_JOB_S1_image_pair_20210713T150429_20210725T150430.o
+#PBS -e /g/data/yp75/sb2020/work/NP_batch_processing/processing/Prydz_logs/PBS_JOB_S1_image_pair_20210713T150429_20210725T150430.e
+
+# Load conda correctly on Gadi
+module use /g/data/xp65/public/modules # this does not exist on compute nodes, only login
+module load conda/analysis3-26.04
+source /g/data/xp65/public/apps/med_conda/etc/profile.d/conda.sh
+
+# Activate your environment
+conda activate /g/data/yp75/sb2020/conda_envs/NORMPROD
+
+
+# added -u option for unbuffered processing, giving continuous logfile updates
+python3 -u /g/data/yp75/sb2020/work/NP_batch_processing/processing/utils/run_single_pair_as_separate_job.py "/g/data/yp75/sb2020/DATA/Prydz/S1_image_pair_20210713T150429_20210725T150430" "[11, 21, 33]" "False" "-0.5" "1.0" "/g/data/yp75/sb2020/DATA/coastline_shapefiles/add_coastline_high_res_polygon_v7_5/add_coastline_high_res_polygon_v7_5.shp" "100" "True" "10" "INFO"

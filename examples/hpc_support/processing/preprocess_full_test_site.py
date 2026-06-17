@@ -28,6 +28,9 @@ from normalized_product import normprod, normprod_utils
 
 from utils.config_loader import load_config
 
+import re
+from datetime import datetime
+
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
@@ -94,15 +97,19 @@ def preprocess_full_test_site():
         logger.error(f"Could not find GEOTIFF_DIR: {GEOTIFF_DIR}")
 
     # GEOTIFF_DIR should contain the GA processed geotiff files with backscatter intensity
-    # List all 'S1*tif' files for current test site
-    img_list = [ f.name for f in GEOTIFF_DIR.iterdir() if f.name.startswith("S1") and f.name.endswith("tif") ]
+    # List all 'S1*tif' files for current test site   
+    img_list = [f.name for f in GEOTIFF_DIR.iterdir() if f.name.startswith("S1") and f.name.endswith("tif")]
+    img_list_AWS = [f.name for f in GEOTIFF_DIR.iterdir() if f.name.startswith("ga_s1") and f.name.endswith("tif")]
+    img_list_new = [f.name for f in GEOTIFF_DIR.iterdir() if f.name.startswith(("hh_gamma")) and f.name.endswith("tif")]
+    img_list += img_list_AWS
+    img_list += img_list_new
     img_list.sort()
+    logger.info(f"Found {len(img_list)} 'S1*tif', 'ga_s1*tif', or 'hh_gamma0*tif' images in GEOTIFF_DIR")
 
-    logger.info(f"Found {len(img_list)} 'S1*tif' images in GEOTIFF_DIR")
 
     # Report error if not at least two images found
     if not any(img_list):
-        logger.error("No 'S1*tif' files found in GEOTIFF_DIR")
+        logger.error("No 'S1*tif', 'ga_s1*tif', or 'hh_gamma0*tif' files found in GEOTIFF_DIR")
         sys.exit()
 
     if len(img_list) == 1:
@@ -138,9 +145,26 @@ def preprocess_full_test_site():
         # Get image datestrings
         # Set these manually from image file names if this fails
         # If you need to do this, then you also need
-        date1 = (normprod_utils.extract_date_from_filename(img_pair[0].stem)).strftime("%Y%m%dT%H%M%S")
-        date2 = (normprod_utils.extract_date_from_filename(img_pair[1].stem)).strftime("%Y%m%dT%H%M%S")
+        if str(img_pair[0].name).startswith("S1"):
+            #here dealing with NCI style data naming used for Gabby processes
+            date1 = (normprod_utils.extract_date_from_filename(img_pair[0].stem)).strftime("%Y%m%dT%H%M%S")
+            date2 = (normprod_utils.extract_date_from_filename(img_pair[1].stem)).strftime("%Y%m%dT%H%M%S")
 
+        elif str(img_pair[0].name).startswith("ga_s1"): # NEW: added block for new naming convention
+            #here dealing with AWS naming conventions 
+            date1_match = re.search(r"(\d{8}T\d{6})", str(img_pair[0].name))
+            date1 = datetime.strptime(date1_match.group(1), "%Y%m%dT%H%M%S")
+            date2_match = re.search(r"(\d{8}T\d{6})", str(img_pair[1].name)) 
+            date2 = datetime.strptime(date2_match.group(1), "%Y%m%dT%H%M%S")
+
+        elif str(img_pair[0].name).startswith("hh_gamma0"):  # NEW: added block for new naming convention
+            #here dealing with AWS converted to TiFFs naming conventions 
+            date1_match = re.search(r"(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})", str(img_pair[0].name))  
+            date1 = datetime.strptime(date1_match.group(1), "%Y-%m-%dT%H-%M-%S").strftime("%Y%m%dT%H%M%S")
+            date2_match = re.search(r"(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})", str(img_pair[1].name))
+            date2 = datetime.strptime(date2_match.group(1), "%Y-%m-%dT%H-%M-%S").strftime("%Y%m%dT%H%M%S")
+    
+        
         # Define IMG_PAIR_DIR
         IMG_PAIR_DIR = SITE_DIR / f"S1_image_pair_{date1}_{date2}"
 

@@ -1,0 +1,83 @@
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:82 - IMG_PAIR_DIR: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:83 - window_list: [11, 21, 33]
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:84 - Save intermediates: False
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:85 - NP_min: -0.5
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:86 - NP_max: 1.0
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:87 - landmask_shapefile_path: /g/data/yp75/sb2020/DATA/coastline_shapefiles/add_coastline_high_res_polygon_v7_5/add_coastline_high_res_polygon_v7_5.shp
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:88 - erode_landmask: 100
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:89 - resample: True
+2026-06-16 12:15:26.059 | INFO     | __main__:run_single_pair:90 - resample_interval: 10
+2026-06-16 12:15:46.308 | INFO     | normalized_product.normprod:fully_process_single_image_pair:402 - Starting full normprod processing chain for img_pair_dir...
+2026-06-16 12:15:46.309 | INFO     | normalized_product.normprod:fully_process_single_image_pair:431 - Found 2 georeg*tif files in img_pair_dir:
+2026-06-16 12:15:46.309 | INFO     | normalized_product.normprod:fully_process_single_image_pair:433 - georeg_1: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031.tif
+2026-06-16 12:15:46.309 | INFO     | normalized_product.normprod:fully_process_single_image_pair:433 - georeg_2: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031.tif
+2026-06-16 12:15:46.309 | INFO     | normalized_product.normprod:fully_process_single_image_pair:441 - Computing DoB, local_std, and normprod_smovar for the following window sizes: [11, 21, 33]
+2026-06-16 12:15:46.309 | INFO     | normalized_product.normprod:fully_process_single_image_pair:454 - Computing DoB and local std for window: 11
+2026-06-16 12:15:46.309 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=11...
+2026-06-16 12:15:57.312 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031_DoB_window11.tif
+2026-06-16 12:15:57.317 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=11...
+2026-06-16 12:16:08.660 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031_DoB_window11.tif
+2026-06-16 12:16:08.665 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=11...
+2026-06-16 12:16:21.089 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031_local_std_window11.tif
+2026-06-16 12:16:21.095 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=11...
+2026-06-16 12:16:32.925 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031_local_std_window11.tif
+2026-06-16 12:16:32.931 | INFO     | normalized_product.normprod:fully_process_single_image_pair:474 - Computing normprod_smovar for window: 11
+2026-06-16 12:16:32.931 | INFO     | normalized_product.normprod:compute_normprod:167 - Starting normprod_smovar computation for w=11...
+2026-06-16 12:27:42.550 | INFO     | normalized_product.normprod:compute_normprod:355 - Saved normprod_smovar: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/normprod_smovar_window11.tif.
+2026-06-16 12:27:42.565 | INFO     | normalized_product.normprod:fully_process_single_image_pair:454 - Computing DoB and local std for window: 21
+2026-06-16 12:27:42.565 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=21...
+2026-06-16 12:27:52.711 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031_DoB_window21.tif
+2026-06-16 12:27:52.715 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=21...
+2026-06-16 12:28:02.077 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031_DoB_window21.tif
+2026-06-16 12:28:02.082 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=21...
+2026-06-16 12:28:14.012 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031_local_std_window21.tif
+2026-06-16 12:28:14.018 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=21...
+2026-06-16 12:28:25.919 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031_local_std_window21.tif
+2026-06-16 12:28:25.925 | INFO     | normalized_product.normprod:fully_process_single_image_pair:474 - Computing normprod_smovar for window: 21
+2026-06-16 12:28:25.925 | INFO     | normalized_product.normprod:compute_normprod:167 - Starting normprod_smovar computation for w=21...
+2026-06-16 12:41:22.622 | INFO     | normalized_product.normprod:compute_normprod:355 - Saved normprod_smovar: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/normprod_smovar_window21.tif.
+2026-06-16 12:41:22.638 | INFO     | normalized_product.normprod:fully_process_single_image_pair:454 - Computing DoB and local std for window: 33
+2026-06-16 12:41:22.638 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=33...
+2026-06-16 12:41:32.290 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031_DoB_window33.tif
+2026-06-16 12:41:32.295 | INFO     | normalized_product.normprod:compute_DoB:29 - Starting DoB computation for w=33...
+2026-06-16 12:41:41.838 | INFO     | normalized_product.normprod:compute_DoB:78 - Saved DoB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031_DoB_window33.tif
+2026-06-16 12:41:41.843 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=33...
+2026-06-16 12:41:53.924 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_1_20210713_EPSG3031_local_std_window33.tif
+2026-06-16 12:41:53.929 | INFO     | normalized_product.normprod:compute_local_std:88 - Starting local std computation for w=33...
+2026-06-16 12:42:05.958 | INFO     | normalized_product.normprod:compute_local_std:138 - Saved local std image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/georeg_2_20210725_EPSG3031_local_std_window33.tif
+2026-06-16 12:42:05.964 | INFO     | normalized_product.normprod:fully_process_single_image_pair:474 - Computing normprod_smovar for window: 33
+2026-06-16 12:42:05.964 | INFO     | normalized_product.normprod:compute_normprod:167 - Starting normprod_smovar computation for w=33...
+2026-06-16 12:59:58.659 | INFO     | normalized_product.normprod:compute_normprod:355 - Saved normprod_smovar: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/normprod_smovar_window33.tif.
+2026-06-16 12:59:58.674 | INFO     | normalized_product.normprod:fully_process_single_image_pair:488 - Stacking to false-color RGB
+2026-06-16 12:59:58.674 | INFO     | normalized_product.normprod_utils:stack_2_RGB:430 - Starting to stack images to RGB...
+2026-06-16 13:00:09.405 | INFO     | normalized_product.normprod_utils:stack_2_RGB:507 - Saved RGB image: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/normprod_smovar_RGB.tif
+2026-06-16 13:00:09.410 | INFO     | normalized_product.normprod:fully_process_single_image_pair:520 - Resampling RGB image
+2026-06-16 13:00:09.410 | INFO     | normalized_product.normprod_utils:resample_geotiff:539 - Starting resampling of geotiff file...
+2026-06-16 13:00:10.806 | INFO     | normalized_product.normprod:fully_process_single_image_pair:542 - Creating landmask image
+2026-06-16 13:00:10.807 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:671 - Starting to rasterize landmask...
+2026-06-16 13:01:43.361 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:716 - Finished landmask raster
+2026-06-16 13:01:43.959 | INFO     | normalized_product.normprod_utils:save_landmask_file_4_geotiff:807 - Saved landmask: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/landmask.tif
+2026-06-16 13:01:43.959 | INFO     | normalized_product.normprod:fully_process_single_image_pair:561 - Creating resampled landmask image
+2026-06-16 13:01:43.960 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:671 - Starting to rasterize landmask...
+2026-06-16 13:01:57.390 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:716 - Finished landmask raster
+2026-06-16 13:01:57.420 | INFO     | normalized_product.normprod_utils:save_landmask_file_4_geotiff:807 - Saved landmask: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/landmask_resampled_10_10.tif
+2026-06-16 13:01:57.421 | INFO     | normalized_product.normprod:fully_process_single_image_pair:581 - Creating eroded landmask image
+2026-06-16 13:01:57.421 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:671 - Starting to rasterize landmask...
+2026-06-16 13:03:27.399 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:716 - Finished landmask raster
+2026-06-16 13:03:27.399 | INFO     | normalized_product.normprod_utils:rasterize_landmask_4_geotiff:725 - Eroding landmask: 100 pixels
+2026-06-16 13:03:30.213 | INFO     | normalized_product.normprod_utils:save_landmask_file_4_geotiff:807 - Saved landmask: /g/data/yp75/sb2020/DATA/Prydz_AWS_test/S1_image_pair_20210713T150429_20210725T150430/landmask_eroded_100.tif
+2026-06-16 13:03:30.214 | INFO     | normalized_product.normprod:fully_process_single_image_pair:600 - Resampling eroded resampled landmask image
+2026-06-16 13:03:30.214 | INFO     | normalized_product.normprod_utils:resample_geotiff:539 - Starting resampling of geotiff file...
+2026-06-16 13:03:30.681 | SUCCESS  | __main__:run_single_pair:109 - Processing complete.
+
+======================================================================================
+                  Resource Usage on 2026-06-16 13:03:37:
+   Job Id:             171310508.gadi-pbs
+   Project:            v10
+   Exit Status:        0
+   Service Units:      9.66
+   NCPUs Requested:    2                   CPU Time Used: 00:47:36        
+   Memory Requested:   24.0GB                Memory Used: 10.78GB         
+   Walltime Requested: 03:00:00            Walltime Used: 00:48:17        
+   JobFS Requested:    100.0MB                JobFS Used: 0B              
+======================================================================================

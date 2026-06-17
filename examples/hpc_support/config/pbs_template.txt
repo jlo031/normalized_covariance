@@ -1,17 +1,23 @@
 #!/bin/bash
-#PBS -P jk72
+#PBS -P v10
 #PBS -q normal
 #PBS -l walltime=03:00:00
 #PBS -l mem=24GB
 #PBS -l ncpus=2
 #PBS -l wd
-#PBS -l storage=gdata/fj7+scratch/jk72+gdata/jk72+gdata/yp75+gdata/gv90
+#PBS -l storage=gdata/fj7+scratch/jk72+gdata/yp75+gdata/gv90+gdata/xp65
 #PBS -N {jobname}
 #PBS -o {log_dir}/{jobname}.o
 #PBS -e {log_dir}/{jobname}.e
 
-source {conda_sh}
+# Load conda correctly on Gadi
+module use /g/data/xp65/public/modules # this does not exist on compute nodes, only login
+module load conda/analysis3-26.04
+source /g/data/xp65/public/apps/med_conda/etc/profile.d/conda.sh
+
+# Activate your environment
 conda activate {conda_env}
+
 
 # added -u option for unbuffered processing, giving continuous logfile updates
 python3 -u {run_script_path} "{img_pair_dir}" "{windows}" "{save_intermediate_products}" "{NP_min}" "{NP_max}" "{landmask_shapefile_path}" "{erode_landmask}" "{resample}" "{resample_interval}" "{loglevel}"
