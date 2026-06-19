@@ -18,10 +18,10 @@
 # -------------------------------------------------------------------------- #
 
 # Set path to main data directory
-data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_tests"
+data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_mapping"
 
 # Define study site
-site: "McMurdo"
+site: "atka_bay_rel_orbit_148"
 
 # Set min and max values for allowed temporal baseline
 min_temp_baseline: 11.9
@@ -74,7 +74,7 @@ resample: true
 resample_interval: 10
 
 # Set loglevel (DEBUG/INFO)
-loglevel: INFO
+loglevel: DEBUG
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
