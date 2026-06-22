@@ -18,10 +18,10 @@
 # -------------------------------------------------------------------------- #
 
 # Set path to main data directory
-data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_tests/NEW_TESTS"
+data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_tests/NEW_TESTS/NEW_FAST_NORMPROD"
 
 # Define study site
-site: "Atka"
+site: "Thwaites"
 
 # Set min and max values for allowed temporal baseline
 min_temp_baseline: 11.9
@@ -99,7 +99,7 @@ pbs_run_script: "./utils/run_single_pair_as_separate_job.py"
 # Set path to log_dir for distributed batch processing
 # Place this wherever you want to keep track of your processing
 # Individual PBS scripts will also be saved here
-pbs_log_dir: "./LOGS/new_normalisation_test/Atka"
+pbs_log_dir: "./LOGS/new_normalisation_test/fast_NP_test/Thwaites"
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
