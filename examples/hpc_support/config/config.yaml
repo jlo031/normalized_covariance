@@ -18,10 +18,10 @@
 # -------------------------------------------------------------------------- #
 
 # Set path to main data directory
-data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_mapping"
+data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_tests/NEW_TESTS"
 
 # Define study site
-site: "atka_bay_rel_orbit_148"
+site: "Atka"
 
 # Set min and max values for allowed temporal baseline
 min_temp_baseline: 11.9
@@ -48,7 +48,7 @@ compute_normprod_locally: false
 
 # Save intermediate products during normprod_smovar computation? (true/false)
 # Only needed during development or trouble-shooting
-save_intermediate_products: false
+save_intermediate_products: true
 
 # Set min/max values for normprod_smovar RGB scaling
 # This determines the dynamic normprod_smovar range that SAM will see
@@ -99,7 +99,7 @@ pbs_run_script: "./utils/run_single_pair_as_separate_job.py"
 # Set path to log_dir for distributed batch processing
 # Place this wherever you want to keep track of your processing
 # Individual PBS scripts will also be saved here
-pbs_log_dir: "./batch_processing_logs/mcmurdo_appendix/logs"
+pbs_log_dir: "./LOGS/new_normalisation_test/Atka"
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #

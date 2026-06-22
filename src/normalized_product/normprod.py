@@ -58,7 +58,7 @@ def compute_DoB(image_path, output_path, window):
     smoothed = uniform_filter(band_filled, size=window, mode="nearest")
 
     # Difference from smoothed version
-    DoB = band - smoothed
+    DoB = band_filled - smoothed
 
 # --------------------- #
 
@@ -117,8 +117,13 @@ def compute_local_std(image_path, output_path, window):
     local_mean = uniform_filter(band_filled, size=window, mode="nearest")
     local_mean_sq = uniform_filter(band_filled**2, size=window, mode="nearest")
 
-    # Standard deviation: sqrt(E[x^2] - (E[x])^2)
-    local_std = np.sqrt(local_mean_sq - local_mean**2)
+    # Compute variance and clamp it to prevent negative floats
+    # This prevents np.sqrt from receiving numbers like -1e-16 and generating NaNs
+    local_variance = local_mean_sq - local_mean**2
+    local_variance_clamped = np.clip(local_variance, a_min=0.0, a_max=None)
+
+    # Compute safe local std
+    local_std = np.sqrt(local_variance_clamped)
 
 # --------------------- #
 
@@ -218,87 +223,14 @@ def compute_normprod(
 
 # --------------------- #
 
-    # OLD
-
-    # Compute mean of std images
-    logger.debug("Computing stdmean.")
-    stdmean = np.mean(np.stack([std1, std2], axis=0), axis=0)
-
-    if save_intermediate_products:
-        logger.debug("Saving stdmean...")
-        intermediate_output_path = normprod_smovar_output_path.parent / f"stdmean_window{window}.tif"
-        driver = gdal.GetDriverByName("GTIFF")
-        out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
-        out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
-        out_ds.SetProjection(ds_dob1.GetProjection())
-        out_ds.GetRasterBand(1).WriteArray(stdmean)
-        out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
-        out_ds.FlushCache()
-        out_ds = None
-        logger.debug(f"Saved stdmean image: {intermediate_output_path}")
-
-# --------------------- #
-
-    # Square stdmean to get varianve
-    logger.debug("Computing variance.")
-    variance = stdmean*stdmean
-
-    # Fill NaNs (again, just in case)
-    logger.debug("Filling nans.")
-    variance_filled = normprod_utils.fill_nans(variance)
-
-    # Clean up
-    stdmean = variance = None
-
-    if save_intermediate_products:
-        logger.debug("Saving intermediate output: variance.")
-        intermediate_output_path = normprod_smovar_output_path.parent / f"variance_window{window}.tif"
-        driver = gdal.GetDriverByName("GTIFF")
-        out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
-        out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
-        out_ds.SetProjection(ds_dob1.GetProjection())
-        out_ds.GetRasterBand(1).WriteArray(variance_filled)
-        out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
-        out_ds.FlushCache()
-        out_ds = None
-        logger.debug(f"Saved variance image: {intermediate_output_path}")
-
-# --------------------- #
-
-    # Compute smothed variance with boxcar of size window
-    logger.debug("Computing smoothed variance.")
-    smoothed_variance = uniform_filter(variance_filled, size=window, mode="nearest")
-
-    if save_intermediate_products:
-        logger.debug("Saving intermediate output: smoothed_variance.")
-        intermediate_output_path = normprod_smovar_output_path.parent / f"smoothed_variance_window{window}.tif"
-        driver = gdal.GetDriverByName("GTIFF")
-        out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
-        out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
-        out_ds.SetProjection(ds_dob1.GetProjection())
-        out_ds.GetRasterBand(1).WriteArray(smoothed_variance)
-        out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
-        out_ds.FlushCache()
-        out_ds = None
-        logger.debug(f"Saved smoothed_variance image: {intermediate_output_path}")
-
-    # Clean up
-    variance_filled = None
-
-# --------------------- #
-# --------------------- #
-# --------------------- #
-
-    # NEW
-
-    # Compute square of std images
-    logger.debug("Computing stdsquare (var).")
+    # Compute local variance as square of std images
+    logger.debug("Computing local varaince (var).")
     var1 = std1 * std1
     var2 = std2 * std2
 
     if save_intermediate_products:
         logger.debug("Saving var1...")
-        intermediate_output_path = normprod_smovar_output_path.parent / f"var1_window{window}.tif"
+        intermediate_output_path = normprod_smovar_output_path.parent / f"local_variance_1_window{window}.tif"
         driver = gdal.GetDriverByName("GTIFF")
         out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
         out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
@@ -310,7 +242,7 @@ def compute_normprod(
         logger.debug(f"Saved var1 image: {intermediate_output_path}")
 
         logger.debug("Saving var2...")
-        intermediate_output_path = normprod_smovar_output_path.parent / f"var2_window{window}.tif"
+        intermediate_output_path = normprod_smovar_output_path.parent / f"local_variance_2_window{window}.tif"
         driver = gdal.GetDriverByName("GTIFF")
         out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
         out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
@@ -328,49 +260,51 @@ def compute_normprod(
 
     # Compute mean of var images
     logger.debug("Computing mean_var.")
-    mean_variance = np.mean(np.stack([var1, var2], axis=0), axis=0)
+    mean_var = (var1+var2) * 0.5
+
+    ##mean_var = np.mean(np.stack([var1, var2], axis=0), axis=0)  # old way of doing this, new way is slightly faster
 
     if save_intermediate_products:
         logger.debug("Saving mean_variance...")
-        intermediate_output_path = normprod_smovar_output_path.parent / f"mean_variance_window{window}.tif"
+        intermediate_output_path = normprod_smovar_output_path.parent / f"local_mean_variance_window{window}.tif"
         driver = gdal.GetDriverByName("GTIFF")
         out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
         out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
         out_ds.SetProjection(ds_dob1.GetProjection())
-        out_ds.GetRasterBand(1).WriteArray(mean_variance)
+        out_ds.GetRasterBand(1).WriteArray(mean_var)
         out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
         out_ds.FlushCache()
         out_ds = None
-        logger.debug(f"Saved mean_variance image: {intermediate_output_path}")
+        logger.debug(f"Saved mean_var image: {intermediate_output_path}")
 
     # Clean up
     var1 = var2 = None
 
-    # Fill NaNs (again, just in case)
+    # Fill NaNs (again, just in case. Should not be necessary after fixing numerical nans in local std above)
     logger.debug("Filling nans.")
-    mean_variance_filled = normprod_utils.fill_nans(mean_variance)
+    mean_var_filled = normprod_utils.fill_nans(mean_var)
 
     # Clean up
-    mean_variance = None
+    mean_var = None
 
 # --------------------- #
 
-    # Compute smothed mean_variance with boxcar of size window
+    # Compute smothed mean_variance with boxcar of size window (could operate on mean_var directly now)
     logger.debug("Computing smoothed variance.")
-    smoothed_mean_variance = uniform_filter(mean_variance_filled, size=window, mode="nearest")
+    smoothed_mean_var = uniform_filter(mean_var_filled, size=window, mode="nearest")
 
     if save_intermediate_products:
-        logger.debug("Saving intermediate output: smoothed_mean_variance.")
+        logger.debug("Saving intermediate output: smoothed_mean_var.")
         intermediate_output_path = normprod_smovar_output_path.parent / f"smoothed_mean_variance_window{window}.tif"
         driver = gdal.GetDriverByName("GTIFF")
         out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
         out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
         out_ds.SetProjection(ds_dob1.GetProjection())
-        out_ds.GetRasterBand(1).WriteArray(smoothed_mean_variance)
+        out_ds.GetRasterBand(1).WriteArray(smoothed_mean_var)
         out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
         out_ds.FlushCache()
         out_ds = None
-        logger.debug(f"Saved smoothed_mean_variance image: {intermediate_output_path}")
+        logger.debug(f"Saved smoothed_mean_var image: {intermediate_output_path}")
 
     # Clean up
     mean_variance_filled = None
@@ -398,14 +332,17 @@ def compute_normprod(
 
 # --------------------- #
 
-    # Apply a NaN-safe mean using generic_filter
-    kernel = np.ones((window, window))  # Window for summation
+    ## In the original version, there were nan values in the dobs and hence in the normprod.
+    ## I now ensure dobs without nan values, so we can use the uniform_filter to average normprod.
+    ## This is MUCH faster!
+    ### Apply a NaN-safe mean using generic_filter
+    ##kernel = np.ones((window, window))  # Window for summation
+    ##logger.debug("Starting generic_filter... about 10 mins for 11*11, 12 mins for 21*21.")
+    ##mean_normprod = generic_filter(normprod, normprod_utils.nan_safe_mean_filter, footprint=kernel, mode='constant', cval=np.nan)
+    ##logger.debug("Finished generic_filter")
 
-    logger.debug("Starting generic_filter... about 10 mins for 11*11, 12 mins for 21*21.")
-
-    mean_normprod = generic_filter(normprod, normprod_utils.nan_safe_mean_filter, footprint=kernel, mode='constant', cval=np.nan)
-
-    logger.debug("Finished generic_filter")
+    logger.debug("Average normprod.")
+    mean_normprod = uniform_filter(normprod, size=window, mode="nearest")
 
     if save_intermediate_products:
         logger.debug("Saving intermediate output: mean_normprod.")
@@ -421,16 +358,16 @@ def compute_normprod(
         logger.debug(f"Saved mean_normprod image: {intermediate_output_path}")
 
     # Clean up
-    variance_filled = None
+    normprod = None
 
 # --------------------- #
 
-    # Divide normprod by smoothed variance
-    normprod_smovar = mean_normprod/smoothed_mean_variance
-    normprod_smovar_OLD = mean_normprod/smoothed_variance
+    # Divide normprod by smoothed mean variance: FINAL PRODUCT
+    normprod_smovar = mean_normprod/smoothed_mean_var
+
 
     # Clean up
-    summed_normprod = smoothed_variance = smoothed_mean_variance= None
+    mean_normprod= smoothed_mean_var = None
 
 # --------------------- #
 
@@ -446,18 +383,6 @@ def compute_normprod(
     out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
     out_ds.FlushCache()
     out_ds = None
-
-
-    intermediate_output_path = normprod_smovar_output_path.parent / f"OLD_normprod_smovar_window{window}.tif"
-    driver = gdal.GetDriverByName("GTIFF")
-    out_ds = driver.Create(intermediate_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
-    out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
-    out_ds.SetProjection(ds_dob1.GetProjection())
-    out_ds.GetRasterBand(1).WriteArray(normprod_smovar_OLD)
-    out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
-    out_ds.FlushCache()
-    out_ds = None
-
 
 
     logger.info(f"Saved normprod_smovar: {normprod_smovar_output_path}.")
@@ -621,45 +546,6 @@ def fully_process_single_image_pair(
         new_max = 255,
         overwrite = False
     )
-
-
-
-
-    # REMOVE THIS PART LATER
-
-    img1_path   = img_pair_dir / f"OLD_normprod_smovar_window{windows[0]}.tif"
-    img2_path   = img_pair_dir / f"OLD_normprod_smovar_window{windows[1]}.tif"
-    img3_path   = img_pair_dir / f"OLD_normprod_smovar_window{windows[2]}.tif"
-    output_path = img_pair_dir / f"OLD_normprod_smovar_RGB.tif"
-
-    logger.debug(f"NP_min:{NP_min}")
-    logger.debug(f"NP_min:{NP_max}")
-    logger.debug(f"img1_path:{img1_path}")
-    logger.debug(f"img2_path:{img2_path}")
-    logger.debug(f"img3_path:{img3_path}")
-
-    normprod_utils.stack_2_RGB(
-        img1_path,
-        img2_path,
-        img3_path,
-        output_path,
-        img_min = NP_min,
-        img_max = NP_max,
-        new_min = 0,
-        new_max = 255,
-        overwrite = False
-    )
-
-
-
-
-
-
-
-
-
-
-
 
 
     if resample:
