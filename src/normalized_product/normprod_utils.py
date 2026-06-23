@@ -462,18 +462,20 @@ def stack_2_RGB(
     img2 = gdal.Open(img2_path).ReadAsArray()
     img3 = gdal.Open(img3_path).ReadAsArray()
 
-    # clip to min and max
-    img1[img1<img_min] = img_min
-    img1[img1>img_max] = img_max
-    img2[img2<img_min] = img_min
-    img2[img2>img_max] = img_max
-    img3[img3<img_min] = img_min
-    img3[img3>img_max] = img_max
-    
-    # Normalize all three channels
-    img1_norm = ((img1-img_min)/(img_max-img_min)*(new_max-new_min)).astype(np.uint8)
-    img2_norm = ((img2-img_min)/(img_max-img_min)*(new_max-new_min)).astype(np.uint8)
-    img3_norm = ((img3-img_min)/(img_max-img_min)*(new_max-new_min)).astype(np.uint8)
+    # Clean nan and +/-inf pixels
+    img1_clean = np.nan_to_num(img1, nan=img_min, posinf=img_min, neginf=img_min)
+    img2_clean = np.nan_to_num(img2, nan=img_min, posinf=img_min, neginf=img_min)
+    img3_clean = np.nan_to_num(img3, nan=img_min, posinf=img_min, neginf=img_min)
+
+    # Clip to min/max
+    img1_clip = np.clip(img1_clean, img_min, img_max)
+    img2_clip = np.clip(img2_clean, img_min, img_max)
+    img3_clip = np.clip(img3_clean, img_min, img_max)
+
+    # Normalize
+    img1_norm = ((img1_clip - img_min) / (img_max - img_min) * (new_max-new_min)).astype(np.uint8)
+    img2_norm = ((img2_clip - img_min) / (img_max - img_min) * (new_max-new_min)).astype(np.uint8)
+    img3_norm = ((img3_clip - img_min) / (img_max - img_min) * (new_max-new_min)).astype(np.uint8)
 
     logger.debug("Finished normalization of input images")
 
