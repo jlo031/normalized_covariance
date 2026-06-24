@@ -13,10 +13,9 @@ dependencies = [
     "aiohttp>=3.14.1,<4", 
     "ipykernel>=7.3.0,<8",
     ]
-name = "normalized_product"
+name = "normalized-product"
 requires-python = ">=3.11, <3.14"
 version = "0.2.1"
-license = "The Ask Johannes Before You Do Anything License"
 
 [project.urls]
 Homepage = "https://github.com/jlo031/normalized_product"
