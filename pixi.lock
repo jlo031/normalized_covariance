@@ -5226,7 +5226,7 @@ packages:
 - pypi: ./
   name: normalized-product
   version: 0.2.1
-  sha256: 35c88bc72dcaf8c6c0a72b02444b95bc28a3a9706f8006212ccf1178542ab534
+  sha256: 4c6bdb7782766614f7154c9a86c00e6eda15c1f56fbf338b15d4efde2afbe48e
   requires_dist:
   - ipython>=8.39.0,<9
   - xarray>=2026.4.0,<2027
@@ -5239,6 +5239,7 @@ packages:
   - shapely>=2.1.2,<3
   - aiohttp>=3.14.1,<4
   - ipykernel>=7.3.0,<8
+  - loguru
   requires_python: '>=3.11,<3.14'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.5.0-py313hf6604e3_0.conda
