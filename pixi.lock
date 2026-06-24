@@ -3807,24 +3807,24 @@ packages:
 - pypi: ./
   name: normalized-product
   version: 0.2.1
-  sha256: bd7d389b45fe54aab29c3a71dcf57942301f272fc5fc05478fc6021be8529469
+  sha256: 2ab68ce5e49ea83d9f3192946dee3b06a31078cf09c844fb6ac53dfa4dd08d24
   requires_dist:
-  - geopandas
-  - numpy
-  - scipy
-  - matplotlib
-  - pyyaml
-  - rioxarray
-  - odc-stac[botocore]
-  - odc-geo
-  - stac-geoparquet
-  - xarray
-  - pystac
-  - pystac-client
-  - fsspec
-  - aiohttp
-  - ipykernel
-  - loguru
+  - geopandas>=1.1.3,<2
+  - numpy>=2.2.6,<3
+  - scipy>=1.18.0,<2
+  - matplotlib>=3.11.0,<4
+  - pyyaml>=6.0.3,<7
+  - rioxarray>=0.22.0,<0.23
+  - odc-stac[botocore]>=0.5.2,<0.6
+  - odc-geo>=0.5.1,<0.6
+  - stac-geoparquet>=0.8.0,<0.9
+  - xarray>=2026.4.0,<2027
+  - pystac>=1.14.3,<2
+  - pystac-client>=0.9.0,<0.10
+  - fsspec>=2026.6.0,<2027
+  - aiohttp>=3.14.1,<4
+  - ipykernel>=7.3.0,<8
+  - loguru>=0.7.3,<0.8
   requires_python: '>=3.11,<3.14'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/numpy-2.5.0-py313hf6604e3_0.conda
