@@ -28,6 +28,7 @@ from normalized_product import normprod_utils
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
+
 def _compute_dob_arr(arr: np.ndarray, window: int) -> np.ndarray:
     """Compute DoB on a 2-D numpy array."""
     arr_filled = normprod_utils.fill_nans(arr)
@@ -37,10 +38,15 @@ def _compute_dob_arr(arr: np.ndarray, window: int) -> np.ndarray:
 
 def _compute_local_std_arr(arr: np.ndarray, window: int) -> np.ndarray:
     """Compute local std on a 2-D numpy array using E[x²] - (E[x])²."""
-    arr_filled    = normprod_utils.fill_nans(arr)
-    local_mean    = uniform_filter(arr_filled, size=window, mode="nearest")
-    local_mean_sq = uniform_filter(arr_filled ** 2, size=window, mode="nearest")
-    return np.sqrt(np.maximum(local_mean_sq - local_mean ** 2, 0))
+    arr_filled = normprod_utils.fill_nans(arr)
+    local_mean = uniform_filter(arr_filled, size=window, mode="nearest")
+    local_mean_sq = uniform_filter(arr_filled**2, size=window, mode="nearest")
+
+    # compute variance and clamp to prevent negative floats
+    local_variance = local_mean_sq - local_mean**2
+    local_variance_clamped = np.clip(local_variance, a_min=0.0, a_max=None)
+
+    return np.sqrt(local_variance_clamped)
 
 
 def _compute_normprod_smovar_arr(
@@ -69,53 +75,63 @@ def _compute_normprod_smovar_arr(
             return
         path = intermediate_dir / f"{name}_window{window}.tif"
         drv = gdal.GetDriverByName("GTIFF")
-        out = drv.Create(str(path), arr.shape[1], arr.shape[0], 1, gdal.GDT_Float32,
-                         options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
+        out = drv.Create(
+            str(path),
+            arr.shape[1],
+            arr.shape[0],
+            1,
+            gdal.GDT_Float32,
+            options=["COMPRESS=DEFLATE", "BIGTIFF=YES"],
+        )
         out.GetRasterBand(1).WriteArray(arr)
         out.GetRasterBand(1).SetNoDataValue(np.nan)
         out.FlushCache()
         out = None
         logger.debug(f"Saved intermediate: {path}")
 
-    logger.debug("Computing stdmean.")
-    stdmean = np.mean(np.stack([std1, std2], axis=0), axis=0)
-    _save(stdmean, "stdmean")
-
-    logger.debug("Computing variance.")
-    variance = stdmean ** 2
-    _save(variance, "variance")
-
-    logger.debug("Filling NaNs in variance.")
-    variance_filled = normprod_utils.fill_nans(variance)
+    logger.debug("Computing local variance (var).")
+    var1 = std1 * std1
+    _save(var1, "local_variance_1")
+    var2 = std2 * std2
+    _save(var2, "local_variance_2")
 
     # Clean up
-    stdmean = variance = None
+    std1 = std2 = None
+
+    logger.debug("Computing man_var.")
+    mean_var = (var1 + var2) * 0.5
+    _save(mean_var, "local_mean_variance")
+
+    # Clean up
+    var1 = var2 = None
+
+    logger.debug("Filling nans.")
+    mean_var_filled = normprod_utils.fill_nans(mean_var)
+    _save(mean_var_filled, "smoothed_mean_variance")
+
+    # Clean up
+    mean_var = None
 
     logger.debug("Computing smoothed variance.")
-    smoothed_variance = uniform_filter(variance_filled, size=window, mode="nearest")
-    _save(smoothed_variance, "smoothed_variance")
+    smoothed_mean_var = uniform_filter(mean_var_filled, size=window, mode="nearest")
+    _save(smoothed_mean_var, "smoothed_mean_variance")
 
     # Clean up
-    variance_filled = None
+    mean_var_filled = None
 
     logger.debug("Computing normprod.")
     normprod = dob1 * dob2
     _save(normprod, "normprod")
 
-    kernel = np.ones((window, window))
-    logger.debug("Starting generic_filter... about 10 mins for 11x11, 12 mins for 21x21.")
-    summed_normprod = generic_filter(
-        normprod, normprod_utils.nan_safe_mean_filter,
-        footprint=kernel, mode="constant", cval=np.nan,
-    )
-    logger.debug("Finished generic_filter.")
+    logger.debug("Average normprod.")
+    mean_normprod = uniform_filter(normprod, size=window, mode="nearest")
+    _save(mean_normprod, "mean_normprod")
 
     # Clean up
     normprod = None
 
-    _save(summed_normprod, "summed_normprod")
+    return mean_normprod / smoothed_mean_var
 
-    return summed_normprod / smoothed_variance
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -123,12 +139,13 @@ def _compute_normprod_smovar_arr(
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
+
 def compute_DoB(image_path, output_path, window):
     """Compute the difference from 2D boxcar smoothing (boxcar DoG-like) while preventing NaN spread."""
 
     logger.info(f"Starting DoB computation for w={window}...")
 
-    image_path  = pathlib.Path(image_path)
+    image_path = pathlib.Path(image_path)
     output_path = pathlib.Path(output_path)
 
     logger.debug(f"image_path:  {image_path}")
@@ -149,13 +166,20 @@ def compute_DoB(image_path, output_path, window):
         return False
 
     band = ds.GetRasterBand(1).ReadAsArray()
-    DoB  = _compute_dob_arr(band, window)
+    DoB = _compute_dob_arr(band, window)
 
-# --------------------- #
+    # --------------------- #
 
     # Save result
     driver = gdal.GetDriverByName("GTIFF")
-    out_ds = driver.Create(output_path, ds.RasterXSize, ds.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
+    out_ds = driver.Create(
+        output_path,
+        ds.RasterXSize,
+        ds.RasterYSize,
+        1,
+        gdal.GDT_Float32,
+        options=["COMPRESS=DEFLATE", "BIGTIFF=YES"],
+    )
     out_ds.SetGeoTransform(ds.GetGeoTransform())
     out_ds.SetProjection(ds.GetProjection())
     out_ds.GetRasterBand(1).WriteArray(DoB)
@@ -170,15 +194,17 @@ def compute_DoB(image_path, output_path, window):
 
     return output_path
 
+
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+
 
 def compute_local_std(image_path, output_path, window):
     """Compute the local standard deviation in a boxcar window."""
 
     logger.info(f"Starting local std computation for w={window}...")
 
-    image_path  = pathlib.Path(image_path)
+    image_path = pathlib.Path(image_path)
     output_path = pathlib.Path(output_path)
 
     logger.debug(f"image_path:  {image_path}")
@@ -199,14 +225,21 @@ def compute_local_std(image_path, output_path, window):
         return
 
     # Get input band (can be HH or HV, input image, but should just have one single band
-    band      = ds.GetRasterBand(1).ReadAsArray()
+    band = ds.GetRasterBand(1).ReadAsArray()
     local_std = _compute_local_std_arr(band, window)
 
-# --------------------- #
+    # --------------------- #
 
     # Save result
     driver = gdal.GetDriverByName("GTIFF")
-    out_ds = driver.Create(output_path, ds.RasterXSize, ds.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
+    out_ds = driver.Create(
+        output_path,
+        ds.RasterXSize,
+        ds.RasterYSize,
+        1,
+        gdal.GDT_Float32,
+        options=["COMPRESS=DEFLATE", "BIGTIFF=YES"],
+    )
     out_ds.SetGeoTransform(ds.GetGeoTransform())
     out_ds.SetProjection(ds.GetProjection())
     out_ds.GetRasterBand(1).WriteArray(local_std)
@@ -221,8 +254,10 @@ def compute_local_std(image_path, output_path, window):
 
     return output_path
 
+
 # -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------
+
 
 def compute_normprod(
     dob1,
@@ -231,7 +266,7 @@ def compute_normprod(
     std2,
     normprod_smovar_output_path,
     window,
-    save_intermediate_products=False
+    save_intermediate_products=False,
 ):
     """Compute Normalized Product (NormProd) using precomputed smoothed images, with NaN-safe summation.
 
@@ -279,7 +314,7 @@ def compute_normprod(
         logger.error(f"Could not find std2: {std2}.")
         return False
 
-# --------------------- #
+    # --------------------- #
 
     # Read all input data
 
@@ -298,23 +333,33 @@ def compute_normprod(
     arr_std1 = ds_std1.GetRasterBand(1).ReadAsArray()
     arr_std2 = ds_std2.GetRasterBand(1).ReadAsArray()
 
-# --------------------- #
+    # --------------------- #
 
     normprod_smovar = _compute_normprod_smovar_arr(
-        arr_dob1, arr_dob2, arr_std1, arr_std2,
+        arr_dob1,
+        arr_dob2,
+        arr_std1,
+        arr_std2,
         window=window,
         save_intermediate_products=save_intermediate_products,
         intermediate_dir=normprod_smovar_output_path.parent,
     )
 
-# --------------------- #
+    # --------------------- #
 
     # Write normprod_smovar to disk
 
     logger.debug("Saving normprod_smovar.")
 
     driver = gdal.GetDriverByName("GTIFF")
-    out_ds = driver.Create(normprod_smovar_output_path, ds_dob1.RasterXSize, ds_dob1.RasterYSize, 1, gdal.GDT_Float32, options=["COMPRESS=DEFLATE", "BIGTIFF=YES"])
+    out_ds = driver.Create(
+        normprod_smovar_output_path,
+        ds_dob1.RasterXSize,
+        ds_dob1.RasterYSize,
+        1,
+        gdal.GDT_Float32,
+        options=["COMPRESS=DEFLATE", "BIGTIFF=YES"],
+    )
     out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
     out_ds.SetProjection(ds_dob1.GetProjection())
     out_ds.GetRasterBand(1).WriteArray(normprod_smovar)
@@ -329,23 +374,25 @@ def compute_normprod(
     dob1 = dob2 = std1 = std2 = ds_dob1 = ds_dob2 = ds_std1 = ds_sdt2 = None
     normprod_smovar = None
 
-# --------------------- #
+    # --------------------- #
 
     return True
 
+
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
+
 def fully_process_single_image_pair(
     img_pair_dir,
-    windows = [11,21,33],
-    save_intermediate_products = False,
-    NP_min = -0.5,
-    NP_max = 1.0,
-    landmask_shapefile_path = None,
-    erode_landmask = None,
-    resample = True,
-    resample_interval = 10,
+    windows=[11, 21, 33],
+    save_intermediate_products=False,
+    NP_min=-0.5,
+    NP_max=1.0,
+    landmask_shapefile_path=None,
+    erode_landmask=None,
+    resample=True,
+    resample_interval=10,
 ):
     """
     Full Normprod processing for single image pair that has already been checked and trimmed.
@@ -371,7 +418,7 @@ def fully_process_single_image_pair(
 
     logger.info(f"Starting full normprod processing chain for img_pair_dir...")
 
-    # Ensure that img_pair_dir is pathlib.Path object    
+    # Ensure that img_pair_dir is pathlib.Path object
     img_pair_dir = pathlib.Path(img_pair_dir)
 
     if not img_pair_dir.exists():
@@ -381,13 +428,13 @@ def fully_process_single_image_pair(
             logger.error(f"img_pair_dir must be folder {img_pair_dir}")
             return False
 
-# --------------------- #
+    # --------------------- #
 
     # List all files in img_pair_dir
-    tif_file_list = [ f for f in img_pair_dir.glob("*.tif") ]
+    tif_file_list = [f for f in img_pair_dir.glob("*.tif")]
 
     logger.debug(f"Found {len(tif_file_list)} tif files in img_pair_dir")
-    for ii,tif_file in enumerate(tif_file_list):
+    for ii, tif_file in enumerate(tif_file_list):
         logger.debug(f"tif_file {ii+1}: {tif_file}")
 
     # Find the original georeg files
@@ -395,20 +442,29 @@ def fully_process_single_image_pair(
     exclude_list = ["DoB", "dob", "std"]
 
     # List the georeg files for the IMG_PAIR_DIR
-    georeg_pair = [ f for f in tif_file_list if f.name.startswith("georeg") and not any(excluded in f.name for excluded in exclude_list) ]
+    georeg_pair = [
+        f
+        for f in tif_file_list
+        if f.name.startswith("georeg")
+        and not any(excluded in f.name for excluded in exclude_list)
+    ]
     georeg_pair.sort(key=lambda p: p.name)
 
     logger.info(f"Found {len(georeg_pair)} georeg*tif files in img_pair_dir:")
     for i, georeg_img in enumerate(georeg_pair):
         logger.info(f"georeg_{i+1}: {georeg_img}")
 
-    if not len(georeg_pair)==2:
-        logger.error(f"Expected exactly 2 files in georeg_pair, but found {len(georeg_pair)}.")
+    if not len(georeg_pair) == 2:
+        logger.error(
+            f"Expected exactly 2 files in georeg_pair, but found {len(georeg_pair)}."
+        )
         return False
 
-# --------------------- #
+    # --------------------- #
 
-    logger.info(f"Computing DoB, local_std, and normprod_smovar for the following window sizes: {windows}")
+    logger.info(
+        f"Computing DoB, local_std, and normprod_smovar for the following window sizes: {windows}"
+    )
 
     georeg_path_1 = georeg_pair[0]
     georeg_path_2 = georeg_pair[1]
@@ -450,20 +506,22 @@ def fully_process_single_image_pair(
             std_path_2,
             normprod_smovar_path,
             window,
-            save_intermediate_products=save_intermediate_products
+            save_intermediate_products=save_intermediate_products,
         )
 
     # --------------------- #
 
     logger.info("Stacking to false-color RGB")
 
-    if not len(windows)==3:
-        logger.error(f"Expected three different window sizes for RGB stack, but len(windows) is {len(windows)}")
+    if not len(windows) == 3:
+        logger.error(
+            f"Expected three different window sizes for RGB stack, but len(windows) is {len(windows)}"
+        )
         return False
 
-    img1_path   = img_pair_dir / f"normprod_smovar_window{windows[0]}.tif"
-    img2_path   = img_pair_dir / f"normprod_smovar_window{windows[1]}.tif"
-    img3_path   = img_pair_dir / f"normprod_smovar_window{windows[2]}.tif"
+    img1_path = img_pair_dir / f"normprod_smovar_window{windows[0]}.tif"
+    img2_path = img_pair_dir / f"normprod_smovar_window{windows[1]}.tif"
+    img3_path = img_pair_dir / f"normprod_smovar_window{windows[2]}.tif"
     output_path = img_pair_dir / f"normprod_smovar_RGB.tif"
 
     logger.debug(f"NP_min:{NP_min}")
@@ -477,20 +535,22 @@ def fully_process_single_image_pair(
         img2_path,
         img3_path,
         output_path,
-        img_min = NP_min,
-        img_max = NP_max,
-        new_min = 0,
-        new_max = 255,
-        overwrite = False
+        img_min=NP_min,
+        img_max=NP_max,
+        new_min=0,
+        new_max=255,
+        overwrite=False,
     )
-
 
     if resample:
 
         logger.info("Resampling RGB image")
 
         geotiff_path = img_pair_dir / f"normprod_smovar_RGB.tif"
-        output_path  = img_pair_dir / f"normprod_smovar_RGB_resampled_{resample_interval}_{resample_interval}.tif"
+        output_path = (
+            img_pair_dir
+            / f"normprod_smovar_RGB_resampled_{resample_interval}_{resample_interval}.tif"
+        )
 
         logger.debug(f"geotiff_path:      {geotiff_path}")
         logger.debug(f"output_path:       {output_path}")
@@ -512,7 +572,7 @@ def fully_process_single_image_pair(
         logger.info("Creating landmask image")
 
         geotiff_path = img_pair_dir / f"normprod_smovar_RGB.tif"
-        output_path  = img_pair_dir / f"landmask.tif"
+        output_path = img_pair_dir / f"landmask.tif"
 
         logger.debug(f"geotiff_path:            {geotiff_path}")
         logger.debug(f"output_path:             {output_path}")
@@ -525,13 +585,18 @@ def fully_process_single_image_pair(
             erode_landmask=None,
         )
 
-
         if resample:
 
             logger.info("Creating resampled landmask image")
 
-            geotiff_path = img_pair_dir / f"normprod_smovar_RGB_resampled_{resample_interval}_{resample_interval}.tif"
-            output_path  = img_pair_dir / f"landmask_resampled_{resample_interval}_{resample_interval}.tif"
+            geotiff_path = (
+                img_pair_dir
+                / f"normprod_smovar_RGB_resampled_{resample_interval}_{resample_interval}.tif"
+            )
+            output_path = (
+                img_pair_dir
+                / f"landmask_resampled_{resample_interval}_{resample_interval}.tif"
+            )
 
             logger.debug(f"geotiff_path:      {geotiff_path}")
             logger.debug(f"output_path:       {output_path}")
@@ -551,7 +616,7 @@ def fully_process_single_image_pair(
             logger.info("Creating eroded landmask image")
 
             geotiff_path = img_pair_dir / f"normprod_smovar_RGB.tif"
-            output_path  = img_pair_dir / f"landmask_eroded_{erode_landmask}.tif"
+            output_path = img_pair_dir / f"landmask_eroded_{erode_landmask}.tif"
 
             logger.debug(f"geotiff_path:            {geotiff_path}")
             logger.debug(f"output_path:             {output_path}")
@@ -564,13 +629,15 @@ def fully_process_single_image_pair(
                 erode_landmask=erode_landmask,
             )
 
-
             if resample:
 
                 logger.info("Resampling eroded resampled landmask image")
 
                 geotiff_path = img_pair_dir / f"landmask_eroded_{erode_landmask}.tif"
-                output_path  = img_pair_dir / f"landmask_eroded_{erode_landmask}_resampled_{resample_interval}_{resample_interval}.tif"
+                output_path = (
+                    img_pair_dir
+                    / f"landmask_eroded_{erode_landmask}_resampled_{resample_interval}_{resample_interval}.tif"
+                )
 
                 logger.debug(f"geotiff_path:      {geotiff_path}")
                 logger.debug(f"output_path:       {output_path}")
@@ -589,11 +656,13 @@ def fully_process_single_image_pair(
 
     return True
 
+
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # xarray NormProd
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+
 
 def compute_DoB_xr(da, window):
     """Compute DoB for an xarray DataArray.
@@ -652,14 +721,15 @@ def compute_normprod_smovar_xr(dob1, dob2, std1, std2, window):
     )
     return dob1.copy(data=result.astype(np.float32)).assign_attrs({"window": window})
 
+
 def fully_process_image_pair_xr(
     img1,
     img2,
-    windows = [11, 21, 33],
-    NP_min = -0.5,
-    NP_max = 1.0,
-    rgb_min = 0,
-    rgb_max = 255,
+    windows=[11, 21, 33],
+    NP_min=-0.5,
+    NP_max=1.0,
+    rgb_min=0,
+    rgb_max=255,
 ):
     """
     Full NormProd processing for a pair of xarray DataArrays.
@@ -684,7 +754,9 @@ def fully_process_image_pair_xr(
                            and 255 by default.
     """
 
-    logger.info(f"Starting full normprod processing chain (xarray) for windows={windows}...")
+    logger.info(
+        f"Starting full normprod processing chain (xarray) for windows={windows}..."
+    )
 
     normprod_smovar_results = {}
 
@@ -697,7 +769,11 @@ def fully_process_image_pair_xr(
         std2 = compute_local_std_xr(img2, window)
 
         normprod_smovar_results[window] = compute_normprod_smovar_xr(
-            dob1, dob2, std1, std2, window,
+            dob1,
+            dob2,
+            std1,
+            std2,
+            window,
         )
 
     results = {"normprod_smovar": normprod_smovar_results}
@@ -707,19 +783,28 @@ def fully_process_image_pair_xr(
         logger.info("Stacking normprod_smovar to false-colour RGB...")
 
         def _scale(arr):
-            return ((np.clip(arr, NP_min, NP_max) - NP_min) / (NP_max - NP_min) * (rgb_max-rgb_min)).astype(np.uint8)
+            return (
+                (np.clip(arr, NP_min, NP_max) - NP_min)
+                / (NP_max - NP_min)
+                * (rgb_max - rgb_min)
+            ).astype(np.uint8)
 
-        results["rgb"] = np.dstack([
-            _scale(normprod_smovar_results[windows[0]].values),
-            _scale(normprod_smovar_results[windows[1]].values),
-            _scale(normprod_smovar_results[windows[2]].values),
-        ])
+        results["rgb"] = np.dstack(
+            [
+                _scale(normprod_smovar_results[windows[0]].values),
+                _scale(normprod_smovar_results[windows[1]].values),
+                _scale(normprod_smovar_results[windows[2]].values),
+            ]
+        )
     else:
-        logger.warning(f"Expected 3 windows for RGB stack, got {len(windows)} — skipping RGB.")
+        logger.warning(
+            f"Expected 3 windows for RGB stack, got {len(windows)} — skipping RGB."
+        )
 
     logger.info("Finished full normprod processing chain (xarray).")
 
     return results
+
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
