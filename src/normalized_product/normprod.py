@@ -33,7 +33,7 @@ def _compute_dob_arr(arr: np.ndarray, window: int) -> np.ndarray:
     """Compute DoB on a 2-D numpy array."""
     arr_filled = normprod_utils.fill_nans(arr)
     smoothed = uniform_filter(arr_filled, size=window, mode="nearest")
-    return arr - smoothed
+    return arr_filled - smoothed
 
 
 def _compute_local_std_arr(arr: np.ndarray, window: int) -> np.ndarray:
