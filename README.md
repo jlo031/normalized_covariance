@@ -38,6 +38,8 @@ cd normalized-product
 
 pixi init
 
+pixi add gdal
+pixi add rasterio
 pixi add --pypi "normalized-product @ git+https://github.com/jlo031/normalized_product.git"
 ```
 
