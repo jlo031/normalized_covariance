@@ -725,11 +725,15 @@ def compute_normprod_smovar_xr(dob1, dob2, std1, std2, window):
 def fully_process_image_pair_xr(
     img1,
     img2,
-    windows=[11, 21, 33],
-    NP_min=-0.5,
-    NP_max=1.0,
-    rgb_min=0,
-    rgb_max=255,
+    windows = [11, 21, 33],
+    NP_min = -0.5,
+    NP_max = 1.0,
+    rgb_min = 0,
+    rgb_max = 255,
+    resample_rgb = False,
+    zoom_x = 1,
+    zoom_y = 1,
+    resample_method = "linear",
 ):
     """
     Full NormProd processing for a pair of xarray DataArrays.
@@ -744,6 +748,16 @@ def fully_process_image_pair_xr(
     NP_max     : maximum NormProd value for RGB scaling (default=1.0)
     rgb_min    : minimum value for RGB image. Defaults to 0.
     rgb_max    : maximum value for RGB image. Defaults to 255.
+    resample_rgb : if True, resample the rgb output by zoom_x/zoom_y after
+                 scaling. normprod_smovar is left at full resolution
+                 (default=False)
+    zoom_x     : resampling factor in x-direction for rgb; >1 coarsens
+                 resolution (default=1)
+    zoom_y     : resampling factor in y-direction for rgb; >1 coarsens
+                 resolution (default=1)
+    resample_method : interpolation method for resampling rgb, mapped to a
+                 scipy.ndimage.zoom order ("nearest"->0, "linear"/"bilinear"->1,
+                 "cubic"->3). Default="linear".
 
     Returns
     -------
@@ -754,9 +768,7 @@ def fully_process_image_pair_xr(
                            and 255 by default.
     """
 
-    logger.info(
-        f"Starting full normprod processing chain (xarray) for windows={windows}..."
-    )
+    logger.info(f"Starting full normprod processing chain (xarray) for windows={windows}...")
 
     normprod_smovar_results = {}
 
@@ -769,11 +781,7 @@ def fully_process_image_pair_xr(
         std2 = compute_local_std_xr(img2, window)
 
         normprod_smovar_results[window] = compute_normprod_smovar_xr(
-            dob1,
-            dob2,
-            std1,
-            std2,
-            window,
+            dob1, dob2, std1, std2, window,
         )
 
     results = {"normprod_smovar": normprod_smovar_results}
@@ -783,23 +791,23 @@ def fully_process_image_pair_xr(
         logger.info("Stacking normprod_smovar to false-colour RGB...")
 
         def _scale(arr):
-            return (
-                (np.clip(arr, NP_min, NP_max) - NP_min)
-                / (NP_max - NP_min)
-                * (rgb_max - rgb_min)
-            ).astype(np.uint8)
+            return ((np.clip(arr, NP_min, NP_max) - NP_min) / (NP_max - NP_min) * (rgb_max-rgb_min)).astype(np.uint8)
 
-        results["rgb"] = np.dstack(
-            [
-                _scale(normprod_smovar_results[windows[0]].values),
-                _scale(normprod_smovar_results[windows[1]].values),
-                _scale(normprod_smovar_results[windows[2]].values),
-            ]
-        )
+        results["rgb"] = np.dstack([
+            _scale(normprod_smovar_results[windows[0]].values),
+            _scale(normprod_smovar_results[windows[1]].values),
+            _scale(normprod_smovar_results[windows[2]].values),
+        ])
+
+        if resample_rgb and (zoom_x != 1 or zoom_y != 1):
+            logger.info(f"Resampling rgb by zoom_x={zoom_x}, zoom_y={zoom_y} (method={resample_method})...")
+            order_map = {"nearest": 0, "linear": 1, "bilinear": 1, "cubic": 3}
+            order = order_map.get(resample_method, 1)
+            rgb_resampled = zoom(results["rgb"], zoom=(1 / zoom_y, 1 / zoom_x, 1), order=order)
+            results["rgb"] = np.clip(rgb_resampled, 0, 255).astype(np.uint8)
+
     else:
-        logger.warning(
-            f"Expected 3 windows for RGB stack, got {len(windows)} — skipping RGB."
-        )
+        logger.warning(f"Expected 3 windows for RGB stack, got {len(windows)} — skipping RGB.")
 
     logger.info("Finished full normprod processing chain (xarray).")
 
