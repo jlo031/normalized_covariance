@@ -98,7 +98,7 @@ def _compute_normprod_smovar_arr(
     # Clean up
     std1 = std2 = None
 
-    logger.debug("Computing man_var.")
+    logger.debug("Computing mean_var.")
     mean_var = (var1 + var2) * 0.5
     _save(mean_var, "local_mean_variance")
 
@@ -107,7 +107,6 @@ def _compute_normprod_smovar_arr(
 
     logger.debug("Filling nans.")
     mean_var_filled = normprod_utils.fill_nans(mean_var)
-    _save(mean_var_filled, "smoothed_mean_variance")
 
     # Clean up
     mean_var = None
