@@ -729,9 +729,9 @@ def fully_process_image_pair_xr(
     NP_max = 1.0,
     rgb_min = 0,
     rgb_max = 255,
-    resample_rgb = False,
-    zoom_x = 1,
-    zoom_y = 1,
+    resample_rgb = True,
+    zoom_x = 10,
+    zoom_y = 10,
     resample_method = "linear",
 ):
     """
