@@ -6,40 +6,44 @@ Original development was conducted in collaboration with the ***University of Ta
 
 ---
 
-## 🛠 Preparation
+## 📦 Installation
 
-This library requires the **Geospatial Data Abstraction Layer ([GDAL])** library. The simplest way to manage GDAL and Python dependencies is via the **[Anaconda]** distribution.
+This library requires the **Geospatial Data Abstraction Layer ([GDAL])** library.
+As such, this library requires the use of Conda or Pixi for installation.
 
-### Environment Setup
-It is recommended the code in a dedicated virtual environment:
+### Install with Conda or Mamba
 
-    # Create and activate a new environment
-    conda create -y --name NORMPROD -c conda-forge gdal rasterio geopandas numpy scipy loguru matplotlib pyyaml
-    conda activate NORMPROD
+Donwload the `environment.yaml` file and create an environment from it:
 
-    # Install additional interactive tools
-    pip install ipython
+```bash
+conda create -f environment.yaml
+conda activate NORMPROD
+```
+
+Then install the package from GitHub:
+
+```bash
+pip install git+https://github.com/jlo031/normalized_product.git
+```
 
 ---
 
-## 📦 Installation
+### Install with Pixi
 
-You can install this library directly from GitHub or locally after cloning the repository.
+Create a new Pixi project and add the package directly from GitHub:
 
-### 1. Installation from GitHub
+```bash
+mkdir normalized-product
+cd normalized-product
 
-     # install this package
-     pip install git+https://github.com/jlo031/normalized_product
+pixi init
 
-### 2. Local installation
+pixi add gdal
+pixi add rasterio
+pixi add --pypi "normalized-product @ git+https://github.com/jlo031/normalized_product.git"
+```
 
-    # clone the repository
-     git clone git@github.com:jlo031/normalized_product
-
- Change into the main directory of the cloned repository (it should contain the *setup.py* file) and install the library:
-
-       # installation
-       pip install .
+Pixi will create an environment containing all required dependencies and install the package from GitHub.
 
 ---
 
