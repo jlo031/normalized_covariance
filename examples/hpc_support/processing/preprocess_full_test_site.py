@@ -186,7 +186,7 @@ def preprocess_full_test_site():
                     save_intermediate_products = save_intermediate_products,
                     NP_min = NP_min,
                     NP_max = NP_max,
-                    landmask_shapefile_path = landmask_shapefile_path,
+                    landmask_shapefile_path = LANDMASK_SHAPEFILE_PATH,
                     erode_landmask = erode_landmask,
                     resample = resample,
                     resample_interval = resample_interval,
