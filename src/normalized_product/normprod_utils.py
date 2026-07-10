@@ -850,7 +850,8 @@ def rasterize_landmask_4_xr(
 
     Returns
     -------
-    landmask_raster : Array with rasterized landmask
+    landmask_raster : Array with rasterized landmask 
+    (1 = land, 0 = water).
     """
 
     logger.info("Starting to rasterize landmask...")
@@ -883,6 +884,7 @@ def rasterize_landmask_4_xr(
     logger.debug(f"transform: {transform}")
 
     # Burn the landmask onto the raster
+    # (1 = land, 0 = water).
     landmask_raster = rasterize(
         shapes,
         out_shape=(height, width),
