@@ -14,7 +14,7 @@ import pathlib
 from loguru import logger
 
 import numpy as np
-from scipy.ndimage import uniform_filter, generic_filter
+from scipy.ndimage import uniform_filter, zoom
 
 from osgeo import gdal
 
@@ -697,6 +697,28 @@ def compute_local_std_xr(da, window):
     return da.copy(data=result)
 
 
+def compute_landmask_xr(da, landmask_shapefile_path, erode_landmask=None):
+    """Compute a landmask for an xarray DataArray by rasterizing a shapefile.
+
+    Parameters
+    ----------
+    da     : xr.DataArray — single 2-D spatial slice with geospatial metadata
+             (CRS + transform, e.g. as attached by rioxarray or odc-stac)
+    landmask_shapefile_path : path to landmask shapefile
+    erode_landmask : erode landmask by number of pixels (default=None, no erosion)
+
+    Returns
+    -------
+    xr.DataArray with the same coordinates and dimensions as `da`.
+    uint8 landmask (1=land, 0=not land).
+    """
+    logger.info(f"Starting landmask computation (xarray), erode_landmask={erode_landmask}...")
+    result = normprod_utils.rasterize_landmask_4_xr(
+        da, landmask_shapefile_path, erode_landmask=erode_landmask,
+    )
+    return da.copy(data=result.astype(np.uint8))
+
+
 def compute_normprod_smovar_xr(dob1, dob2, std1, std2, window):
     """Compute normprod_smovar for xarray DataArrays.
 
@@ -733,6 +755,10 @@ def fully_process_image_pair_xr(
     zoom_x = 10,
     zoom_y = 10,
     resample_method = "linear",
+    landmask_shapefile_path = None,
+    erode_landmask = None,
+    resample_landmask = True,
+    apply_landmask_to_rgb = False,
 ):
     """
     Full NormProd processing for a pair of xarray DataArrays.
@@ -757,6 +783,11 @@ def fully_process_image_pair_xr(
     resample_method : interpolation method for resampling rgb, mapped to a
                  scipy.ndimage.zoom order ("nearest"->0, "linear"/"bilinear"->1,
                  "cubic"->3). Default="linear".
+    landmask_shapefile_path : path to landmask shapefile. If given, a landmask
+                 is rasterized onto img1's grid (default=None, no landmask).
+    erode_landmask : erode landmask by number of pixels (default=None). Only
+                 applied if landmask_shapefile_path is also given.
+    apply_landmask_to_rgb : apply the mask to the rgb and rgb_resampled image.
 
     Returns
     -------
@@ -765,6 +796,18 @@ def fully_process_image_pair_xr(
         "rgb"             : np.ndarray (H, W, 3) uint8 — false-colour composite
                            (only present when len(windows) == 3). Scaled between 0
                            and 255 by default.
+        "rgb_resampled"   : rgb image resampled based on setting (only present 
+                            when resample_rgb = True). 
+        "landmask"        : xr.DataArray uint8 — rasterized landmask (only present
+                           when landmask_shapefile_path is given)
+        "landmask_resampled"   : landmask image resampled based on setting (only present 
+                            when resample_landmask = Truem and landmask_shapefile_path 
+                            is given). 
+        "rgb_landmasked"  : The rgb image with the landmask applied. (only present 
+                            when landmask and apply_landmask_to_rgb = True)
+        "rgb_resampled_landmasked"  : The rgb resampled image with the landmask applied. 
+                            (only present when landmask, resample_rgb = True, 
+                            apply_landmask_to_rgb = True)
     """
 
     logger.info(f"Starting full normprod processing chain (xarray) for windows={windows}...")
@@ -803,10 +846,28 @@ def fully_process_image_pair_xr(
             order_map = {"nearest": 0, "linear": 1, "bilinear": 1, "cubic": 3}
             order = order_map.get(resample_method, 1)
             rgb_resampled = zoom(results["rgb"], zoom=(1 / zoom_y, 1 / zoom_x, 1), order=order)
-            results["rgb"] = np.clip(rgb_resampled, 0, 255).astype(np.uint8)
+            results["rgb_resampled"] = np.clip(rgb_resampled, 0, 255).astype(np.uint8)
 
     else:
         logger.warning(f"Expected 3 windows for RGB stack, got {len(windows)} — skipping RGB.")
+
+    # Landmask
+    if landmask_shapefile_path is not None:
+        logger.info("Computing landmask...")
+        results["landmask"] = compute_landmask_xr(img1, landmask_shapefile_path, erode_landmask=erode_landmask)
+        if apply_landmask_to_rgb:
+            rgb_landmasked = results["rgb"].copy()
+            rgb_landmasked[results["landmask"] == 1] = 0 
+            results["rgb_landmasked"] = rgb_landmasked
+        if resample_landmask and (zoom_x != 1 or zoom_y != 1):
+            logger.info(f"Resampling landmask by zoom_x={zoom_x}, zoom_y={zoom_y} (method={resample_method})...")
+            order = order_map.get(resample_method, 1)
+            landmask_resampled = zoom(results["landmask"].values, zoom=(1 / zoom_y, 1 / zoom_x), order=0)
+            results["landmask_resampled"] = landmask_resampled.astype(np.uint8)
+            if apply_landmask_to_rgb:
+                rgb_resampled_landmasked = results["rgb_resampled"].copy()
+                rgb_resampled_landmasked[results["landmask_resampled"] == 1] = 0 
+                results["rgb_resampled_landmasked"] = rgb_resampled_landmasked
 
     logger.info("Finished full normprod processing chain (xarray).")
 

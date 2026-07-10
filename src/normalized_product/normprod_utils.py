@@ -16,12 +16,14 @@ from loguru import logger
 from datetime import datetime
 
 import numpy as np
-from scipy.ndimage import uniform_filter, zoom, minimum_filter1d
+from scipy.ndimage import zoom, binary_erosion
 
 import geopandas as gpd
 import rasterio
 from rasterio.features import rasterize
 from osgeo import gdal, osr
+
+import rioxarray  # registers the .rio accessor on xr.DataArray
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -651,6 +653,27 @@ def resample_geotiff(
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
+def erode_coastline(landmask_raster, erode_pixels):
+    """
+    Shrink land inward from the coastline by `erode_pixels`.
+    Interior land (far from any water) is untouched; the raster's own
+    edges are treated as land (not water) so tile-boundary cropping
+    doesn't get mistaken for a real coastline.
+    """
+    if not erode_pixels:
+        return landmask_raster
+    structure = np.ones((3, 3), dtype=bool)  # 8-connected
+    eroded = binary_erosion(
+        landmask_raster.astype(bool),
+        structure=structure,
+        iterations=erode_pixels,
+        border_value=1,  # treat outside-the-array as land, not water
+    )
+    return eroded.astype(np.uint8)
+
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+
 def rasterize_landmask_4_geotiff(
     geotiff_path,
     landmask_shapefile_path,
@@ -725,10 +748,7 @@ def rasterize_landmask_4_geotiff(
     else:
 
         logger.info(f"Eroding landmask: {erode_landmask} pixels")
-
-        #erode landmask
-        tmp = minimum_filter1d(landmask_raster, size=100, axis=0, mode='constant', cval=0)
-        eroded_landmask_raster = minimum_filter1d(tmp, size=100, axis=1, mode='constant', cval=0)
+        eroded_landmask_raster = erode_coastline(landmask_raster, erode_pixels=erode_landmask)
 
     return eroded_landmask_raster
 
@@ -809,6 +829,80 @@ def save_landmask_file_4_geotiff(
     logger.info(f"Saved landmask: {output_path}")
 
     return True
+
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+
+def rasterize_landmask_4_xr(
+    da,
+    landmask_shapefile_path,
+    erode_landmask=None,
+):
+    """
+    Rasterize a shapefile landmask onto the grid of an xarray DataArray.
+
+    Parameters
+    ----------
+    da : xr.DataArray with geospatial metadata (CRS + transform), e.g. as
+         attached by rioxarray or odc-stac
+    landmask_shapefile_path : Path to input landmask shapefile
+    erode_landmask : Erode landmask by number of pixels (default=None)
+
+    Returns
+    -------
+    landmask_raster : Array with rasterized landmask
+    """
+
+    logger.info("Starting to rasterize landmask...")
+
+    landmask_shapefile_path = pathlib.Path(landmask_shapefile_path).resolve()
+
+    logger.debug(f"landmask_shapefile_path:  {landmask_shapefile_path}")
+
+    if not landmask_shapefile_path.is_file():
+        logger.error(f"Could not find landmask_shapefile_path: {landmask_shapefile_path}")
+        return False
+
+    # --------------------- #
+
+    # Read the landmask shapefile and reproject to match the DataArray's CRS
+    landmask_gdf = gpd.read_file(landmask_shapefile_path)
+
+    da_crs = da.rio.crs
+    if da_crs is not None and landmask_gdf.crs is not None and landmask_gdf.crs != da_crs:
+        landmask_gdf = landmask_gdf.to_crs(da_crs)
+
+    shapes = ((geom, 1) for geom in landmask_gdf.geometry)
+
+    # Read required geospatial meta data from the DataArray
+    height, width = da.rio.shape
+    transform = da.rio.transform()
+
+    logger.debug(f"width:     {width}")
+    logger.debug(f"height:    {height}")
+    logger.debug(f"transform: {transform}")
+
+    # Burn the landmask onto the raster
+    landmask_raster = rasterize(
+        shapes,
+        out_shape=(height, width),
+        transform=transform,
+        fill=0,
+        default_value=1,
+        dtype="uint8"
+    )
+
+    logger.info("Finished landmask raster")
+
+    # --------------------- #
+
+    if erode_landmask == None:
+        return landmask_raster
+    else:
+        logger.info(f"Eroding landmask: {erode_landmask} pixels")
+        eroded_landmask_raster = erode_coastline(landmask_raster, erode_pixels=erode_landmask)
+
+    return eroded_landmask_raster
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
