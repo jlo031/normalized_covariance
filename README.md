@@ -51,7 +51,8 @@ Pixi will create an environment containing all required dependencies and install
 
 Test scripts and usage examples are provided in the `test/` and `examples/` folders.
 
-* **examples:** Contains a "quick and dirty" script that runs through the entire processing chain for a single image pair.
+* **examples/process_single_img_pair_locally.py:** Script that runs the entire processing chain for a single image pair from local GeoTIFF files.
+* **examples/normprod_from_stac_xarray.ipynb:** Notebook that runs the full NormProd pipeline entirely in-memory on xarray DataArrays queried from STAC — no intermediate files are written.
 * **examples/hpc_support:** Examples subfolder with setup for distributed batch processing, specifically designed for the **NCI/GADI** supercomputing environment.
 
 Unless you are developing the code further, there is no need to run or modify the contents of the `test/` folder.
@@ -103,3 +104,73 @@ DATA_DIR/
 [GDAL]: https://gdal.org/
 [AAPP]: https://aappartnership.org.au/
 [Anaconda]: https://www.anaconda.com/
+
+---
+
+## 💻 For Developers
+
+Python packages are challenging! 
+We have put some thought into how we manage them for both development and general use.
+
+For developers, we have picked [`pixi`](https://pixi.sh/latest/).
+This is because:
+* It allows us to keep track of explicit python dependencies from both conda and pypi using a single `pyproject.toml` file.
+* It keeps a [lock file](https://pixi.sh/latest/workspace/lockfile/) that is always up-to-date, allowing for reproducible environments.
+* It allows us to keep packages needed for development in their own [environment](https://pixi.sh/latest/workspace/environment/).
+* It allows us to define useful [tasks](https://pixi.sh/latest/workspace/advanced_tasks/) (similar to a Makefile) all within the `pyproject.toml` file.
+
+### Install pixi
+
+Follow the [pixi installation guide](https://pixi.sh/latest/#installation).
+
+### Install pixi environments
+Environments are associated with the project.
+
+* The `default` environment contains packages required for the code base (e.g. gdal, rasterio).
+
+`cd` to the repository folder and install the environments:
+
+To install both environments, run
+```bash
+pixi install --all
+```
+
+### Adding a package
+
+We recommend using [`pixi add`](https://pixi.sh/latest/reference/cli/pixi/add/) because this will automatically update the lock file (`pixi.lock`).
+
+#### From Pypi
+Preference should be made to install packages from PyPi if they are available.
+This is likely for common python packages.
+
+To install or update a package from Pypi, run `pixi add --pypi <package-name>`
+
+To remove a package from Pypi, run `pixi remove --pypi <package-name>`
+
+#### From Conda
+If the package is not available on PyPi, conda should be used.
+
+To install a package from Conda, run `pixi add <package-name>`
+
+Pixi defaults to using the `conda-forge` channel.
+To add other channels, see [`pixi workspace channel`](https://pixi.sh/latest/reference/cli/pixi/workspace/channel/).
+
+#### Directly editing the pyproject.toml file
+You can manually add packages by adding them to the appropriate section of the `pyproject.toml` file:
+* `[tool.pixi.dependencies]` for Conda
+* `dependencies` for pip
+
+However, this will not automatically update the `pixi.lock` file, so is not recommended.
+
+### Tidying up the pyproject.toml file
+After adding a package, it is worth doing a little extra work to make sure the `pyproject.toml` file is nicely formatted:
+
+1. check the versions that were installed using `pixi list -x` (this shows the versions of packages explicitly listed in `pyproject.toml`)
+
+1. Check and manually update the versions in the `pyproject.toml` if required (remove upper limits from conda packages, add versions for pypi packages)
+
+### Running utility tasks
+
+The following utility tasks can be run.
+
+* `pixi run export-conda` -> Export the `default` pixi environment as a conda environment.yaml file
