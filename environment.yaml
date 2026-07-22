@@ -1,4 +1,4 @@
-name: NORMPROD
+name: NORMCOVAR
 channels:
 - conda-forge
 - nodefaults
