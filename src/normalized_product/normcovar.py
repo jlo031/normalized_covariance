@@ -279,7 +279,7 @@ def compute_normcovar(
     dev_from_local_mean2_path : path to 'deviation_from_local_mean' input image 2
     local_var1_path : path to 'local_variance' input image 1
     local_var2_path : path to 'local_variance' input image 2
-    normprod_smovar_output_path : path to output file (normcovar image)
+    normcovar_output_path : path to output file (normcovar image)
     window : window size for normalized product (e.g. 11, 21, 33)
     save_intermediate_products : save intermediate products as tif files (default=False)
     """
@@ -409,7 +409,7 @@ def fully_process_single_image_pair(
         - dev_from_local_mean for each image
         - local_var for each image
         - normcovar for image pair
-        - stack normprod_smovar to RGB image
+        - stack normcovar to RGB image
 
     Parameters
     ----------
@@ -675,9 +675,8 @@ def fully_process_single_image_pair(
 # -------------------------------------------------------------------------- #
 
 
-# TO DO: compute_DoB -> compute_deviation_from_local_mean
-def compute_DoB_xr(da, window):
-    """Compute DoB for an xarray DataArray.
+def compute_deviation_from_local_mean_xr(da, window):
+    """Compute deviation from local mean value for an xarray DataArray.
 
     Parameters
     ----------
@@ -688,14 +687,13 @@ def compute_DoB_xr(da, window):
     -------
     xr.DataArray with the same coordinates and dimensions as `da`
     """
-    logger.info(f"Starting DoB computation (xarray) for w={window}...")
-    result = _compute_dob_arr(da.values.astype(np.float32), window)
+    logger.info(f"Starting 'deviation_from_local_mean' computation (xarray) for w={window}...")
+    result = _compute_deviation_from_local_mean_arr(da.values.astype(np.float32), window)
     return da.copy(data=result)
 
-# TO DO: not going to std anymore since we are only using local_var
-# names adjusted accordingly
-def compute_local_std_xr(da, window):
-    """Compute local standard deviation for an xarray DataArray.
+
+def compute_local_var_xr(da, window):
+    """Compute local variance for an xarray DataArray.
 
     Parameters
     ----------
@@ -707,7 +705,7 @@ def compute_local_std_xr(da, window):
     xr.DataArray with the same coordinates and dimensions as `da`
     """
     logger.info(f"Starting local std computation (xarray) for w={window}...")
-    result = _compute_local_std_arr(da.values.astype(np.float32), window)
+    result = _compute_local_var_arr(da.values.astype(np.float32), window)
     return da.copy(data=result)
 
 
@@ -733,34 +731,31 @@ def compute_landmask_xr(da, landmask_shapefile_path, erode_landmask=None):
     )
     return da.copy(data=result.astype(np.uint8))
 
-# TO DO: Adjust naming convention, change std to var
-# dob -> deviation_from_local_mean
-# normprod_smovar -> normcovar
 
-def compute_normprod_smovar_xr(dob1, dob2, std1, std2, window):
-    """Compute normprod_smovar for xarray DataArrays.
+def compute_normcovar_xr(dev1, dev2, var1, var2, window):
+    """Compute normcovar for xarray DataArrays.
 
     Parameters
     ----------
-    dob1, dob2 : xr.DataArray — DoB images for the two acquisitions
-    std1, std2 : xr.DataArray — local std images for the two acquisitions
+    dev1, dev2 : xr.DataArray — deviation from local mean images for the two acquisitions
+    var1, var2 : xr.DataArray — local var images for the two acquisitions
     window     : boxcar window size
 
     Returns
     -------
     xr.DataArray with the same coordinates and dimensions as `dob1`
     """
-    logger.info(f"Starting normprod_smovar computation (xarray) for w={window}")
-    result = _compute_normprod_smovar_arr(
-        dob1.values.astype(np.float32),
-        dob2.values.astype(np.float32),
-        std1.values.astype(np.float32),
-        std2.values.astype(np.float32),
+    logger.info(f"Starting normcovar computation (xarray) for w={window}")
+    result = _compute_normcovar_arr(
+        dev1.values.astype(np.float32),
+        dev2.values.astype(np.float32),
+        var1.values.astype(np.float32),
+        var2.values.astype(np.float32),
         window=window,
     )
-    return dob1.copy(data=result.astype(np.float32)).assign_attrs({"window": window})
+    return dev1.copy(data=result.astype(np.float32)).assign_attrs({"window": window})
 
-# TO DO: Adjust according to the changes above
+
 def fully_process_image_pair_xr(
     img1,
     img2,
@@ -779,7 +774,7 @@ def fully_process_image_pair_xr(
     apply_landmask_to_rgb = False,
 ):
     """
-    Full NormProd processing for a pair of xarray DataArrays.
+    Full NormCoVar processing for a pair of xarray DataArrays.
     Equivalent to fully_process_single_image_pair but operates entirely
     in-memory — no files are read or written.
 
@@ -792,7 +787,7 @@ def fully_process_image_pair_xr(
     rgb_min    : minimum value for RGB image. Defaults to 0.
     rgb_max    : maximum value for RGB image. Defaults to 255.
     resample_rgb : if True, resample the rgb output by zoom_x/zoom_y after
-                 scaling. normprod_smovar is left at full resolution
+                 scaling. normcovar is left at full resolution
                  (default=False)
     zoom_x     : resampling factor in x-direction for rgb; >1 coarsens
                  resolution (default=1)
@@ -810,7 +805,7 @@ def fully_process_image_pair_xr(
     Returns
     -------
     dict with keys:
-        "normprod_smovar" : dict[int, xr.DataArray]  — one DataArray per window
+        "normcovar" : dict[int, xr.DataArray]  — one DataArray per window
         "rgb"             : np.ndarray (H, W, 3) uint8 — false-colour composite
                            (only present when len(windows) == 3). Scaled between 0
                            and 255 by default.
@@ -828,35 +823,35 @@ def fully_process_image_pair_xr(
                             apply_landmask_to_rgb = True)
     """
 
-    logger.info(f"Starting full normprod processing chain (xarray) for windows={windows}...")
+    logger.info(f"Starting full normcovar processing chain (xarray) for windows={windows}...")
 
-    normprod_smovar_results = {}
+    normcovar_results = {}
 
     for window in windows:
-        logger.info(f"Window {window}: computing DoB, local std, normprod_smovar...")
+        logger.info(f"Window {window}: computing DoB, local std, normcovar...")
 
-        dob1 = compute_DoB_xr(img1, window)
-        dob2 = compute_DoB_xr(img2, window)
-        std1 = compute_local_std_xr(img1, window)
-        std2 = compute_local_std_xr(img2, window)
+        dev1 = compute_deviation_from_local_mean_xr(img1, window)
+        dev2 = compute_deviation_from_local_mean_xr(img2, window)
+        var1 = compute_local_var_xr(img1, window)
+        var2 = compute_local_var_xr(img2, window)
 
-        normprod_smovar_results[window] = compute_normprod_smovar_xr(
-            dob1, dob2, std1, std2, window,
+        normcovar_results[window] = compute_normcovar_xr(
+            dev1, dev2, var1, var2, window,
         )
 
-    results = {"normprod_smovar": normprod_smovar_results}
+    results = {"normcovar": normcovar_results}
 
     # False-colour RGB stack (requires exactly 3 windows)
     if len(windows) == 3:
-        logger.info("Stacking normprod_smovar to false-colour RGB...")
+        logger.info("Stacking normcovar to false-colour RGB...")
 
         def _scale(arr):
             return ((np.clip(arr, NP_min, NP_max) - NP_min) / (NP_max - NP_min) * (rgb_max-rgb_min)).astype(np.uint8)
 
         results["rgb"] = np.dstack([
-            _scale(normprod_smovar_results[windows[0]].values),
-            _scale(normprod_smovar_results[windows[1]].values),
-            _scale(normprod_smovar_results[windows[2]].values),
+            _scale(normcovar_results[windows[0]].values),
+            _scale(normcovar_results[windows[1]].values),
+            _scale(normcovar_results[windows[2]].values),
         ])
 
         if resample_rgb and (zoom_x != 1 or zoom_y != 1):
