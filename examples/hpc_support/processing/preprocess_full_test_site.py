@@ -8,8 +8,8 @@ Loop over test site specified in config.yaml file.
 - If an image pair meets temporal baseline criteria:
     - Check and trim pair and write 'georeg*tif' files to IMG_PAIR_DIR
     - Add IMG_PAIR_DIR to list of valid folders
-    - If 'compute_normprod_locally' is set to 'True' in config.yaml:
-        - compute normprod locally
+    - If 'compute_normcovar_locally' is set to 'True' in config.yaml:
+        - compute normcovar locally
         - Not recommended if processing many image pairs (~40minutes per pair)
 """ 
 
@@ -24,7 +24,7 @@ from itertools import combinations
 import numpy as np
 from osgeo import gdal
 
-from normalized_product import normprod, normprod_utils
+from normalized_product import normcovar, normcovar_utils
 
 from utils.config_loader import load_config
 
@@ -53,7 +53,7 @@ def preprocess_full_test_site():
     max_temp_baseline          = cfg["max_temp_baseline"]
     output_epsg                = cfg["output_epsg"]
     window_list                = cfg["window_list"]
-    compute_normprod_locally   = cfg["compute_normprod_locally"]
+    compute_normcovar_locally   = cfg["compute_normcovar_locally"]
     save_intermediate_products = cfg["save_intermediate_products"]
     NP_min                     = cfg["NP_min"]
     NP_max                     = cfg["NP_max"]
@@ -126,7 +126,7 @@ def preprocess_full_test_site():
 
     for count,img_pair in enumerate(combinations(img_list, 2),1):
 
-        # Convert tuples to pairs (expexted by normprod functions)
+        # Convert tuples to pairs (expexted by normcovar functions)
         img_pair = list(img_pair)
         logger.info(f"Processing image pair {count}/{total_img_pairs}")
         logger.info(f"img1: {img_pair[0]}")
@@ -138,8 +138,8 @@ def preprocess_full_test_site():
         # Get image datestrings
         # Set these manually from image file names if this fails
         # If you need to do this, then you also need
-        date1 = (normprod_utils.extract_date_from_filename(img_pair[0].stem)).strftime("%Y%m%dT%H%M%S")
-        date2 = (normprod_utils.extract_date_from_filename(img_pair[1].stem)).strftime("%Y%m%dT%H%M%S")
+        date1 = (normcovar_utils.extract_date_from_filename(img_pair[0].stem)).strftime("%Y%m%dT%H%M%S")
+        date2 = (normcovar_utils.extract_date_from_filename(img_pair[1].stem)).strftime("%Y%m%dT%H%M%S")
 
         # Define IMG_PAIR_DIR
         IMG_PAIR_DIR = SITE_DIR / f"S1_image_pair_{date1}_{date2}"
@@ -149,7 +149,7 @@ def preprocess_full_test_site():
         logger.debug(f"IMG_PAIR_DIR: {IMG_PAIR_DIR}")
 
         # Check and trim image pair
-        valid_pair = normprod_utils.check_and_trim_image_pair(
+        valid_pair = normcovar_utils.check_and_trim_image_pair(
             img_pair,
             IMG_PAIR_DIR,
             min_temp_baseline = min_temp_baseline,
@@ -161,7 +161,7 @@ def preprocess_full_test_site():
         )
 
         # Add IMG_PAIR_DIR to list if it met the temporal baseline criteria and was succesfully processed
-        # If this does not work properly, check the False/True returns from 'normprod_utils.check_and_trim_image_pair'
+        # If this does not work properly, check the False/True returns from 'normcovar_utils.check_and_trim_image_pair'
         if valid_pair:
             valid_image_pair_folders.append(IMG_PAIR_DIR.name)
 
@@ -170,17 +170,17 @@ def preprocess_full_test_site():
 
         if valid_pair:
 
-            if not compute_normprod_locally:
-                logger.info("Not performing actual normprod computation at this point")
-                logger.info("You can compute the normprod by setting 'compute_normprod_locally=True'")
-                logger.info("For many image pairs, it is recommended to do compute normprod in a separate job")
+            if not compute_normcovar_locally:
+                logger.info("Not performing actual normcovar computation at this point")
+                logger.info("You can compute the normcovar by setting 'compute_normcovar_locally=True'")
+                logger.info("For many image pairs, it is recommended to do compute normcovar in a separate job")
 
             else:
-                logger.info("Preparing normprod computation")
+                logger.info("Preparing normcovar computation")
                 logger.warning("This may take a long time, especially for many valid image pairs")
-                logger.warning("Consider distributed processing instead: 'compute_normprod_locally: false'")
+                logger.warning("Consider distributed processing instead: 'compute_normcovar_locally: false'")
 
-                normprod.fully_process_single_image_pair(
+                normcovar.fully_process_single_image_pair(
                     IMG_PAIR_DIR,
                     windows = window_list,
                     save_intermediate_products = save_intermediate_products,

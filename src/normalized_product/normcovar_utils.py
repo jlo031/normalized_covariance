@@ -648,10 +648,7 @@ def resample_geotiff(
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def erode_coastline(
-    landmask_raster
-    erode_pixels
-):
+def erode_coastline(landmask_raster, erode_pixels):
     """
     Shrink land inward from the coastline by `erode_pixels`.
     Interior land (far from any water) is untouched; the raster's own

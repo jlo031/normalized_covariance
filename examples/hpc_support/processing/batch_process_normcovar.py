@@ -1,14 +1,14 @@
-# ---- This is <batch_process_normprod_smovar.py> ----
+# ---- This is <batch_process_normcovar.py> ----
 
 """
-Batch process normprod_smovar for test site specified in config.yaml file.
+Batch process normcovar_smovar for test site specified in config.yaml file.
 Requires pre-processing of the test site using the same config settings.
 
 - Loop over txt file with pre-processed IMG_PAIR_DIR entries
 - Create an individual PBS job for each image pair and start a separate job for:
     - DoB
     - local_std
-    - normprod_smovar
+    - normcovar_smovar
 """ 
 
 import pathlib
@@ -23,7 +23,7 @@ import subprocess
 import numpy as np
 from osgeo import gdal
 
-from normalized_product import normprod, normprod_utils
+from normalized_product import normcovar, normcovar_utils
 
 from utils.config_loader import load_config
 
@@ -52,7 +52,7 @@ def batch_process_img_pair_folders_distributed():
     max_temp_baseline          = cfg["max_temp_baseline"]
     output_epsg                = cfg["output_epsg"]
     window_list                = cfg["window_list"]
-    compute_normprod_locally   = cfg["compute_normprod_locally"]
+    compute_normcovar_locally   = cfg["compute_normcovar_locally"]
     save_intermediate_products = cfg["save_intermediate_products"]
     NP_min                     = cfg["NP_min"]
     NP_max                     = cfg["NP_max"]
@@ -185,5 +185,5 @@ if __name__ == "__main__":
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# ---- End of <batch_process_img_pair_folders_distributed.py> ----
+# ---- End of <batch_process_normcovar.py> ----
 

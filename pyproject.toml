@@ -18,12 +18,12 @@ dependencies = [
     "ipykernel>=7.3.0,<8", 
     "loguru>=0.7.3,<0.8",
     ]
-name = "normalized-covarianve"
+name = "normalized-product"
 requires-python = ">=3.11, <3.14"
 version = "0.2.1"
 
 [project.urls]
-Homepage = "https://github.com/jlo031/normalized_covariance"
+Homepage = "https://github.com/jlo031/normalized_product"
 
 [build-system]
 build-backend = "hatchling.build"

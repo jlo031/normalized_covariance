@@ -118,17 +118,17 @@ def _compute_normcovar_arr(
 
 
     logger.debug("Computing image covariance.")
-    covar = dev_from_local_mean1 * dev_from_local_mean2
+    product_of_local_devs = dev_from_local_mean1 * dev_from_local_mean2
+    _save(product_of_local_devs, "product_of_local_devs")
+
+    logger.debug("Average product_of_local_devs.")
+    covar = uniform_filter(product_of_local_devs, size=window, mode="nearest")
     _save(covar, "covar")
 
-    logger.debug("Average covar.")
-    mean_covar = uniform_filter(covar, size=window, mode="nearest")
-    _save(mean_covar, "mean_covar")
-
     # Clean up
-    covar = None
+    product_of_local_devs = None
 
-    return mean_covar / local_mean_var_filled
+    return covar / smoothed_local_mean_var
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -169,7 +169,7 @@ def compute_deviation_from_local_mean(image_path, output_path, window):
         return False
 
     band = ds.GetRasterBand(1).ReadAsArray()
-    deviation_from_local_mean = _compute_dob_arr(band, window)
+    deviation_from_local_mean = _compute_deviation_from_local_mean_arr(band, window)
 
     # --------------------- #
 
@@ -185,7 +185,7 @@ def compute_deviation_from_local_mean(image_path, output_path, window):
     )
     out_ds.SetGeoTransform(ds.GetGeoTransform())
     out_ds.SetProjection(ds.GetProjection())
-    out_ds.GetRasterBand(1).WriteArray(dev_from_local_mean)
+    out_ds.GetRasterBand(1).WriteArray(deviation_from_local_mean)
     out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
     out_ds.FlushCache()
 
@@ -338,14 +338,14 @@ def compute_normcovar(
 
     # --------------------- #
 
-    normcovar = _compute_normprod_smovar_arr(
+    normcovar = _compute_normcovar_arr(
         dev_from_local_mean1,
         dev_from_local_mean2,
         local_var1,
         local_var2,
         window=window,
         save_intermediate_products=save_intermediate_products,
-        intermediate_dir=normprod_smovar_output_path.parent,
+        intermediate_dir=normcovar_output_path.parent,
     )
 
     # --------------------- #
@@ -363,8 +363,8 @@ def compute_normcovar(
         gdal.GDT_Float32,
         options=["COMPRESS=DEFLATE", "BIGTIFF=YES"],
     )
-    out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
-    out_ds.SetProjection(ds_dob1.GetProjection())
+    out_ds.SetGeoTransform(ds_local_var1.GetGeoTransform())
+    out_ds.SetProjection(ds_local_var1.GetProjection())
     out_ds.GetRasterBand(1).WriteArray(normcovar)
     out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
     out_ds.FlushCache()
@@ -449,7 +449,7 @@ def fully_process_single_image_pair(
 
     # Find the original georeg files
     # Make sure to exclude previously processed DoB or std images
-    exclude_list = ["DoB", "dob", "std"]  UPDATE THIS TO DO
+    exclude_list = ["local_var", "dev_from_local_mean", "local_std"]  ##UPDATE THIS TO DO
 
     # List the georeg files for the IMG_PAIR_DIR
     georeg_pair = [
