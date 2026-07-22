@@ -1,12 +1,12 @@
-# ---- This is <normprod.py> ----
+# ---- This is <normcovar.py> ----
 
 """
-Module for normprod (normalized product) computation.
+Module for NormCoVar computation.
 Developed as part of the AAPP/UTAS tool for Antarctic fast ice mapping.
 
 Initial developments by A.P. Doulgeris, G. Burke, A. Fraser.
 
-Packaged by J. Lohse.
+Packaged by J. Lohse, A. Bradley, C. Adams.
 (johannes.lohse@utas.edu.au)
 """
 
@@ -20,25 +20,33 @@ from osgeo import gdal
 
 import xarray as xr
 
-from normalized_product import normprod_utils
+from normalized_product import normcovar_utils
 
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # numpy array based functions for both file based and xarray processing
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+
+def _compute_deviation_from_local_mean_arr(arr: np.ndarray, window: int) -> np.ndarray:
+    """
+    Compute local mean values of within boxcar window.
+    Subtract local_mean from central point of window.
+    """
+    arr_filled = normcovar_utils.fill_nans(arr)
+    local_mean = uniform_filter(arr_filled, size=window, mode="nearest")
+    return arr_filled - local_mean
 
 
-def _compute_dob_arr(arr: np.ndarray, window: int) -> np.ndarray:
-    """Compute DoB on a 2-D numpy array."""
-    arr_filled = normprod_utils.fill_nans(arr)
-    smoothed = uniform_filter(arr_filled, size=window, mode="nearest")
-    return arr_filled - smoothed
-
-
-def _compute_local_std_arr(arr: np.ndarray, window: int) -> np.ndarray:
-    """Compute local std on a 2-D numpy array using E[x²] - (E[x])²."""
-    arr_filled = normprod_utils.fill_nans(arr)
+def _compute_local_var_arr(arr: np.ndarray, window: int) -> np.ndarray:
+    """
+    Compute local var on a 2-D numpy array using E[x²] - (E[x])².
+    """
+    arr_filled = normcovar_utils.fill_nans(arr)
     local_mean = uniform_filter(arr_filled, size=window, mode="nearest")
     local_mean_sq = uniform_filter(arr_filled**2, size=window, mode="nearest")
 
@@ -46,26 +54,26 @@ def _compute_local_std_arr(arr: np.ndarray, window: int) -> np.ndarray:
     local_variance = local_mean_sq - local_mean**2
     local_variance_clamped = np.clip(local_variance, a_min=0.0, a_max=None)
 
-    return np.sqrt(local_variance_clamped)
+    return local_variance_clamped
 
 
-def _compute_normprod_smovar_arr(
-    dob1: np.ndarray,
-    dob2: np.ndarray,
-    std1: np.ndarray,
-    std2: np.ndarray,
+def _compute_normcovar_arr(
+    dev_from_local_mean1: np.ndarray,
+    dev_from_local_mean2: np.ndarray,
+    local_var1: np.ndarray,
+    local_var2: np.ndarray,
     window: int,
     save_intermediate_products: bool = False,
     intermediate_dir: pathlib.Path = None,
 ) -> np.ndarray:
     """
-    Compute normprod_smovar on 2-D numpy arrays.
+    Compute normcovar on 2-D numpy arrays.
 
     Parameters
     ----------
-    dob1, dob2 : DoB arrays for the two images
-    std1, std2 : Local std arrays for the two images
-    window     : Boxcar window size
+    dev_from_local_mean1, dev_from_local_mean2 : Arrays with deviation from local mean
+    local_var1, local_var2 : Local variance arrays for the two images
+    window : Boxcar window size
     save_intermediate_products : Write intermediate arrays to disk (requires intermediate_dir).
     intermediate_dir : Directory for intermediate GeoTIFF files (ignored when save_intermediate_products=False).
     """
@@ -73,7 +81,7 @@ def _compute_normprod_smovar_arr(
     def _save(arr, name):
         if not save_intermediate_products or intermediate_dir is None:
             return
-        path = intermediate_dir / f"{name}_window{window}.tif"
+        path = intermediate_dir / f"{name}__window{window}.tif"
         drv = gdal.GetDriverByName("GTIFF")
         out = drv.Create(
             str(path),
@@ -89,62 +97,58 @@ def _compute_normprod_smovar_arr(
         out = None
         logger.debug(f"Saved intermediate: {path}")
 
-    logger.debug("Computing local variance (var).")
-    var1 = std1 * std1
-    _save(var1, "local_variance_1")
-    var2 = std2 * std2
-    _save(var2, "local_variance_2")
 
-    # Clean up
-    std1 = std2 = None
-
-    logger.debug("Computing mean_var.")
-    mean_var = (var1 + var2) * 0.5
-    _save(mean_var, "local_mean_variance")
-
-    # Clean up
-    var1 = var2 = None
+    logger.debug("Computing local_mean_var.")
+    local_mean_var = (local_var1 + local_var2) * 0.5
+    _save(local_mean_var, "local_mean_variance")
 
     logger.debug("Filling nans.")
-    mean_var_filled = normprod_utils.fill_nans(mean_var)
+    local_mean_var_filled = normcovar_utils.fill_nans(local_mean_var)
 
     # Clean up
-    mean_var = None
+    var1 = var2 = local_mean_var = None
+
 
     logger.debug("Computing smoothed variance.")
-    smoothed_mean_var = uniform_filter(mean_var_filled, size=window, mode="nearest")
-    _save(smoothed_mean_var, "smoothed_mean_variance")
+    smoothed_local_mean_var = uniform_filter(local_mean_var_filled, size=window, mode="nearest")
+    _save(smoothed_local_mean_var, "smoothed_local_mean_variance")
 
     # Clean up
     mean_var_filled = None
 
-    logger.debug("Computing normprod.")
-    normprod = dob1 * dob2
-    _save(normprod, "normprod")
 
-    logger.debug("Average normprod.")
-    mean_normprod = uniform_filter(normprod, size=window, mode="nearest")
-    _save(mean_normprod, "mean_normprod")
+    logger.debug("Computing image covariance.")
+    covar = dev_from_local_mean1 * dev_from_local_mean2
+    _save(covar, "covar")
+
+    logger.debug("Average covar.")
+    mean_covar = uniform_filter(covar, size=window, mode="nearest")
+    _save(mean_covar, "mean_covar")
 
     # Clean up
-    normprod = None
+    covar = None
 
-    return mean_normprod / smoothed_mean_var
+    return mean_covar / local_mean_var_filled
 
-
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # File-based NormProd
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
+def compute_deviation_from_local_mean(image_path, output_path, window):
+    """
+    Read input image and compute local mean values within boxcar window.
+    Subtract local_mean from central point of window and write to output_path.
+    """
 
-def compute_DoB(image_path, output_path, window):
-    """Compute the difference from 2D boxcar smoothing (boxcar DoG-like) while preventing NaN spread."""
+    logger.info(f"Starting 'deviation_from_local_mean' computation for w={window}...")
 
-    logger.info(f"Starting DoB computation for w={window}...")
-
-    image_path = pathlib.Path(image_path)
+    image_path  = pathlib.Path(image_path)
     output_path = pathlib.Path(output_path)
 
     logger.debug(f"image_path:  {image_path}")
@@ -165,7 +169,7 @@ def compute_DoB(image_path, output_path, window):
         return False
 
     band = ds.GetRasterBand(1).ReadAsArray()
-    DoB = _compute_dob_arr(band, window)
+    deviation_from_local_mean = _compute_dob_arr(band, window)
 
     # --------------------- #
 
@@ -181,29 +185,30 @@ def compute_DoB(image_path, output_path, window):
     )
     out_ds.SetGeoTransform(ds.GetGeoTransform())
     out_ds.SetProjection(ds.GetProjection())
-    out_ds.GetRasterBand(1).WriteArray(DoB)
+    out_ds.GetRasterBand(1).WriteArray(dev_from_local_mean)
     out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
     out_ds.FlushCache()
 
     # Clean up
     out_ds = None
-    ds = None
+    ds     = None
 
-    logger.info(f"Saved DoB image: {output_path}")
+    logger.info(f"Saved 'deviation_from_local_mean' image: {output_path}")
 
     return output_path
 
-
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
+def compute_local_var(image_path, output_path, window):
+    """
+    Read input image and compute local variance using E[x²] - (E[x])².
+    Write variance image to output_path.
+    """
 
-def compute_local_std(image_path, output_path, window):
-    """Compute the local standard deviation in a boxcar window."""
+    logger.info(f"Starting 'local_var' computation for w={window}...")
 
-    logger.info(f"Starting local std computation for w={window}...")
-
-    image_path = pathlib.Path(image_path)
+    image_path  = pathlib.Path(image_path)
     output_path = pathlib.Path(output_path)
 
     logger.debug(f"image_path:  {image_path}")
@@ -225,7 +230,7 @@ def compute_local_std(image_path, output_path, window):
 
     # Get input band (can be HH or HV, input image, but should just have one single band
     band = ds.GetRasterBand(1).ReadAsArray()
-    local_std = _compute_local_std_arr(band, window)
+    local_var = _compute_local_var_arr(band, window)
 
     # --------------------- #
 
@@ -241,104 +246,103 @@ def compute_local_std(image_path, output_path, window):
     )
     out_ds.SetGeoTransform(ds.GetGeoTransform())
     out_ds.SetProjection(ds.GetProjection())
-    out_ds.GetRasterBand(1).WriteArray(local_std)
+    out_ds.GetRasterBand(1).WriteArray(local_var)
     out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
     out_ds.FlushCache()
 
     # Clean up
     out_ds = None
-    ds = None
+    ds     = None
 
-    logger.info(f"Saved local std image: {output_path}")
+    logger.info(f"Saved 'local_var' image: {output_path}")
 
     return output_path
-
 
 # -------------------------------------------------------------------------- #
 # --------------------------------------------------------------------------
 
-
-def compute_normprod(
-    dob1,
-    dob2,
-    std1,
-    std2,
-    normprod_smovar_output_path,
+def compute_normcovar(
+    dev_from_local_mean1_path,
+    dev_from_local_mean2_path,
+    local_var1_path,
+    local_var2_path,
+    normcovar_output_path,
     window,
     save_intermediate_products=False,
 ):
-    """Compute Normalized Product (NormProd) using precomputed smoothed images, with NaN-safe summation.
+    """
+    Compute normalised covariance (NormCoVar) using precomputed smoothed images.
 
     Parameters
     ----------
-    dob1 : path to input DoB image 1
-    dob2 : path to input DoB image 2
-    std1 : path to input local std image 1
-    std2 : path to input local std image 2
-    normprod_smovar_output_path : path to output file, normprod divided by smoothed variance
+    dev_from_local_mean1_path : path to 'deviation_from_local_mean' input image 1
+    dev_from_local_mean2_path : path to 'deviation_from_local_mean' input image 2
+    local_var1_path : path to 'local_variance' input image 1
+    local_var2_path : path to 'local_variance' input image 2
+    normprod_smovar_output_path : path to output file (normcovar image)
     window : window size for normalized product (e.g. 11, 21, 33)
     save_intermediate_products : save intermediate products as tif files (default=False)
     """
 
-    logger.info(f"Starting normprod_smovar computation for w={window}...")
+    logger.info(f"Starting 'normcovar' computation for w={window}...")
 
-    logger.debug(f"dob1: {dob1}")
-    logger.debug(f"dob2: {dob2}")
-    logger.debug(f"std1: {std1}")
-    logger.debug(f"std2: {std2}")
+    logger.debug(f"dev_from_local_mean1_path: {dev_from_local_mean1_path}")
+    logger.debug(f"dev_from_local_mean2_path: {dev_from_local_mean2_path}")
+    logger.debug(f"local_var1_path: {local_var1_path}")
+    logger.debug(f"local_var2_path: {local_var2_path}")
 
-    dob1 = pathlib.Path(dob1)
-    dob2 = pathlib.Path(dob2)
-    std1 = pathlib.Path(std1)
-    std2 = pathlib.Path(std2)
-    normprod_smovar_output_path = pathlib.Path(normprod_smovar_output_path)
+    dev_from_local_mean1_path = pathlib.Path(dev_from_local_mean1_path)
+    dev_from_local_mean2_path = pathlib.Path(dev_from_local_mean2_path)
+    local_var1_path = pathlib.Path(local_var1_path)
+    local_var2_path = pathlib.Path(local_var2_path)
+    normcovar_output_path = pathlib.Path(normcovar_output_path)
 
-    if normprod_smovar_output_path.is_file():
-        logger.info(f"Skipping, {normprod_smovar_output_path} already exists.")
+    if normcovar_output_path.is_file():
+        logger.info(f"Skipping, {normcovar_output_path} already exists.")
         return True
 
-    if not dob1.is_file():
-        logger.error(f"Could not find dob1: {dob1}.")
+    if not dev_from_local_mean1_path.is_file():
+        logger.error(f"Could not find dev_from_local_mean1_path: {dev_from_local_mean1_path}.")
         return False
 
-    if not dob2.is_file():
-        logger.error(f"Could not find dob2: {dob2}.")
+    if not dev_from_local_mean2_path.is_file():
+        logger.error(f"Could not find dev_from_local_mean2_path: {dev_from_local_mean2_path}.")
         return False
 
-    if not std1.is_file():
-        logger.error(f"Could not find std1: {std1}.")
+    if not local_var1_path.is_file():
+        logger.error(f"Could not find local_var1_path: {local_var1_path}.")
         return False
 
-    if not std2.is_file():
-        logger.error(f"Could not find std2: {std2}.")
+    if not local_var2_path.is_file():
+        logger.error(f"Could not find local_var2_path: {local_var2_path}.")
         return False
 
     # --------------------- #
 
     # Read all input data
 
-    ds_dob1 = gdal.Open(dob1, gdal.GA_ReadOnly)
-    ds_dob2 = gdal.Open(dob2, gdal.GA_ReadOnly)
-    ds_std1 = gdal.Open(std1, gdal.GA_ReadOnly)
-    ds_std2 = gdal.Open(std2, gdal.GA_ReadOnly)
+    ds_dev_from_local_mean1 = gdal.Open(dev_from_local_mean1_path, gdal.GA_ReadOnly)
+    ds_dev_from_local_mean2 = gdal.Open(dev_from_local_mean2_path, gdal.GA_ReadOnly)
+    ds_local_var1 = gdal.Open(local_var1_path, gdal.GA_ReadOnly)
+    ds_local_var2 = gdal.Open(local_var2_path, gdal.GA_ReadOnly)
 
-    if not all([ds_dob1, ds_dob2, ds_std1, ds_std2]):
+    if not all([ds_dev_from_local_mean1, ds_dev_from_local_mean2, ds_local_var1, ds_local_var2]):
         logger.error(f"Could not open all required input files.")
         return False
 
     logger.debug("Reading input data.")
-    arr_dob1 = ds_dob1.GetRasterBand(1).ReadAsArray()
-    arr_dob2 = ds_dob2.GetRasterBand(1).ReadAsArray()
-    arr_std1 = ds_std1.GetRasterBand(1).ReadAsArray()
-    arr_std2 = ds_std2.GetRasterBand(1).ReadAsArray()
+    dev_from_local_mean1 = ds_dev_from_local_mean1.GetRasterBand(1).ReadAsArray()
+    dev_from_local_mean2 = ds_dev_from_local_mean2.GetRasterBand(1).ReadAsArray()
+    local_var1 = ds_local_var1.GetRasterBand(1).ReadAsArray()
+    local_var2 = ds_local_var2.GetRasterBand(1).ReadAsArray()
 
     # --------------------- #
 
-    normprod_smovar = _compute_normprod_smovar_arr(
-        arr_dob1,
-        arr_dob2,
-        arr_std1,
-        arr_std2,
+    normcovar = _compute_normprod_smovar_arr(
+        dev_from_local_mean1,
+        dev_from_local_mean2,
+        local_var1,
+        local_var2,
         window=window,
         save_intermediate_products=save_intermediate_products,
         intermediate_dir=normprod_smovar_output_path.parent,
@@ -346,38 +350,45 @@ def compute_normprod(
 
     # --------------------- #
 
-    # Write normprod_smovar to disk
+    # Write normcovar to disk
 
-    logger.debug("Saving normprod_smovar.")
+    logger.debug("Saving normcovar...")
 
     driver = gdal.GetDriverByName("GTIFF")
     out_ds = driver.Create(
-        normprod_smovar_output_path,
-        ds_dob1.RasterXSize,
-        ds_dob1.RasterYSize,
+        normcovar_output_path,
+        ds_local_var1.RasterXSize,
+        ds_local_var1.RasterYSize,
         1,
         gdal.GDT_Float32,
         options=["COMPRESS=DEFLATE", "BIGTIFF=YES"],
     )
     out_ds.SetGeoTransform(ds_dob1.GetGeoTransform())
     out_ds.SetProjection(ds_dob1.GetProjection())
-    out_ds.GetRasterBand(1).WriteArray(normprod_smovar)
+    out_ds.GetRasterBand(1).WriteArray(normcovar)
     out_ds.GetRasterBand(1).SetNoDataValue(np.nan)
     out_ds.FlushCache()
     out_ds = None
 
-    logger.info(f"Saved normprod_smovar: {normprod_smovar_output_path}.")
+    logger.info(f"Saved 'normcovar' image: {normcovar_output_path}.")
 
     # Clean up
     logger.debug("Freeing memory.")
-    dob1 = dob2 = std1 = std2 = ds_dob1 = ds_dob2 = ds_std1 = ds_sdt2 = None
-    normprod_smovar = None
+    dev_from_local_mean1 = dev_from_local_mean1 = local_var1 = local_var1 = None
+    ds_dev_from_local_mean1 = ds_dev_from_local_mean1 = ds_local_var1 = ds_local_var1 = None
+    normcovar = None
 
     # --------------------- #
 
     return True
 
-
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# Full workflows put together
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
@@ -394,10 +405,10 @@ def fully_process_single_image_pair(
     resample_interval=10,
 ):
     """
-    Full Normprod processing for single image pair that has already been checked and trimmed.
-        - DoB for each image
-        - local std for each image
-        - normprod_smovar for image pair
+    Full NormCoVar processing for single image pair that has already been checked and trimmed.
+        - dev_from_local_mean for each image
+        - local_var for each image
+        - normcovar for image pair
         - stack normprod_smovar to RGB image
 
     Parameters
@@ -438,7 +449,7 @@ def fully_process_single_image_pair(
 
     # Find the original georeg files
     # Make sure to exclude previously processed DoB or std images
-    exclude_list = ["DoB", "dob", "std"]
+    exclude_list = ["DoB", "dob", "std"]  UPDATE THIS TO DO
 
     # List the georeg files for the IMG_PAIR_DIR
     georeg_pair = [
@@ -461,9 +472,7 @@ def fully_process_single_image_pair(
 
     # --------------------- #
 
-    logger.info(
-        f"Computing DoB, local_std, and normprod_smovar for the following window sizes: {windows}"
-    )
+    logger.info(f"Computing dev_from_local_mean, local_var, and normcovar for the following window sizes: {windows}")
 
     georeg_path_1 = georeg_pair[0]
     georeg_path_2 = georeg_pair[1]
@@ -476,34 +485,34 @@ def fully_process_single_image_pair(
     logger.debug(f"georeg_basename_2: {georeg_basename_2}")
 
     for window in windows:
-        logger.info(f"Computing DoB and local std for window: {window}")
+        logger.info(f"Computing 'dev_from_local_mean' and 'local_var' for window: {window}")
 
-        dob_path_1 = img_pair_dir / f"{georeg_basename_1}_DoB_window{window}.tif"
-        dob_path_2 = img_pair_dir / f"{georeg_basename_2}_DoB_window{window}.tif"
-        std_path_1 = img_pair_dir / f"{georeg_basename_1}_local_std_window{window}.tif"
-        std_path_2 = img_pair_dir / f"{georeg_basename_2}_local_std_window{window}.tif"
-        normprod_smovar_path = img_pair_dir / f"normprod_smovar_window{window}.tif"
+        dev_from_local_mean_path_1 = img_pair_dir / f"{georeg_basename_1}__dev_from_local_mean__window{window}.tif"
+        dev_from_local_mean_path_2 = img_pair_dir / f"{georeg_basename_2}__dev_from_local_mean__window{window}.tif"
+        local_var_path_1 = img_pair_dir / f"{georeg_basename_1}__local_var__window{window}.tif"
+        local_var_path_2 = img_pair_dir / f"{georeg_basename_2}__local_var__window{window}.tif"
+        normcovar_path = img_pair_dir / f"normcovar__window{window}.tif"
 
-        logger.debug(f"dob_path_1: {dob_path_1}")
-        logger.debug(f"dob_path_2: {dob_path_2}")
-        logger.debug(f"std_path_1: {std_path_1}")
-        logger.debug(f"std_path_2: {std_path_2}")
-        logger.debug(f"normprod_smovar_path: {normprod_smovar_path}")
+        logger.debug(f"dev_from_local_mean_path_1: {dev_from_local_mean_path_1}")
+        logger.debug(f"dev_from_local_mean_path_2: {dev_from_local_mean_path_2}")
+        logger.debug(f"local_var_path_1: {local_var_path_1}")
+        logger.debug(f"local_var_path_2: {local_var_path_2}")
+        logger.debug(f"normcovar_path: {normcovar_path}")
 
-        compute_DoB(georeg_path_1, dob_path_1, window)
-        compute_DoB(georeg_path_2, dob_path_2, window)
+        compute_deviation_from_local_mean(georeg_path_1, dev_from_local_mean_path_1, window)
+        compute_deviation_from_local_mean(georeg_path_2, dev_from_local_mean_path_2, window)
 
-        compute_local_std(georeg_path_1, std_path_1, window)
-        compute_local_std(georeg_path_2, std_path_2, window)
+        compute_local_var(georeg_path_1, local_var_path_1, window)
+        compute_local_var(georeg_path_2, local_var_path_2, window)
 
-        logger.info(f"Computing normprod_smovar for window: {window}")
+        logger.info(f"Computing 'normcovar' for window: {window}")
 
-        compute_normprod(
-            dob_path_1,
-            dob_path_2,
-            std_path_1,
-            std_path_2,
-            normprod_smovar_path,
+        compute_normcovar(
+            dev_from_local_mean_path_1,
+            dev_from_local_mean_path_2,
+            local_var_path_1,
+            local_var_path_2,
+            normcovar_path,
             window,
             save_intermediate_products=save_intermediate_products,
         )
@@ -518,10 +527,10 @@ def fully_process_single_image_pair(
         )
         return False
 
-    img1_path = img_pair_dir / f"normprod_smovar_window{windows[0]}.tif"
-    img2_path = img_pair_dir / f"normprod_smovar_window{windows[1]}.tif"
-    img3_path = img_pair_dir / f"normprod_smovar_window{windows[2]}.tif"
-    output_path = img_pair_dir / f"normprod_smovar_RGB.tif"
+    img1_path = img_pair_dir / f"normcovar__window{windows[0]}.tif"
+    img2_path = img_pair_dir / f"normcovar__window{windows[1]}.tif"
+    img3_path = img_pair_dir / f"normcovar__window{windows[2]}.tif"
+    output_path = img_pair_dir / f"normcovar__RGB.tif"
 
     logger.debug(f"NP_min:{NP_min}")
     logger.debug(f"NP_min:{NP_max}")
@@ -529,7 +538,7 @@ def fully_process_single_image_pair(
     logger.debug(f"img2_path:{img2_path}")
     logger.debug(f"img3_path:{img3_path}")
 
-    normprod_utils.stack_2_RGB(
+    normcovar_utils.stack_2_RGB(
         img1_path,
         img2_path,
         img3_path,
@@ -545,17 +554,17 @@ def fully_process_single_image_pair(
 
         logger.info("Resampling RGB image")
 
-        geotiff_path = img_pair_dir / f"normprod_smovar_RGB.tif"
+        geotiff_path = img_pair_dir / f"normcovar__RGB.tif"
         output_path = (
             img_pair_dir
-            / f"normprod_smovar_RGB_resampled_{resample_interval}_{resample_interval}.tif"
+            / f"normcovar__RGB__resampled_{resample_interval}_{resample_interval}.tif"
         )
 
         logger.debug(f"geotiff_path:      {geotiff_path}")
         logger.debug(f"output_path:       {output_path}")
         logger.debug(f"resample_interval: {resample_interval}")
 
-        normprod_utils.resample_geotiff(
+        normcovar_utils.resample_geotiff(
             geotiff_path,
             output_path,
             zoom_x=resample_interval,
@@ -570,14 +579,14 @@ def fully_process_single_image_pair(
 
         logger.info("Creating landmask image")
 
-        geotiff_path = img_pair_dir / f"normprod_smovar_RGB.tif"
-        output_path = img_pair_dir / f"landmask.tif"
+        geotiff_path = img_pair_dir / f"normcovar__RGB.tif"
+        output_path  = img_pair_dir / f"landmask.tif"
 
         logger.debug(f"geotiff_path:            {geotiff_path}")
         logger.debug(f"output_path:             {output_path}")
         logger.debug(f"landmask_shapefile_path: {landmask_shapefile_path}")
 
-        normprod_utils.save_landmask_file_4_geotiff(
+        normcovar_utils.save_landmask_file_4_geotiff(
             geotiff_path,
             landmask_shapefile_path,
             output_path,
@@ -590,18 +599,18 @@ def fully_process_single_image_pair(
 
             geotiff_path = (
                 img_pair_dir
-                / f"normprod_smovar_RGB_resampled_{resample_interval}_{resample_interval}.tif"
+                / f"normcovar__RGB__resampled_{resample_interval}_{resample_interval}.tif"
             )
             output_path = (
                 img_pair_dir
-                / f"landmask_resampled_{resample_interval}_{resample_interval}.tif"
+                / f"landmask__resampled_{resample_interval}_{resample_interval}.tif"
             )
 
             logger.debug(f"geotiff_path:      {geotiff_path}")
             logger.debug(f"output_path:       {output_path}")
             logger.debug(f"resample_interval: {resample_interval}")
 
-            normprod_utils.save_landmask_file_4_geotiff(
+            normcovar_utils.save_landmask_file_4_geotiff(
                 geotiff_path,
                 landmask_shapefile_path,
                 output_path,
@@ -614,14 +623,14 @@ def fully_process_single_image_pair(
 
             logger.info("Creating eroded landmask image")
 
-            geotiff_path = img_pair_dir / f"normprod_smovar_RGB.tif"
-            output_path = img_pair_dir / f"landmask_eroded_{erode_landmask}.tif"
+            geotiff_path = img_pair_dir / f"normcovar__RGB.tif"
+            output_path  = img_pair_dir / f"landmask__eroded_{erode_landmask}.tif"
 
             logger.debug(f"geotiff_path:            {geotiff_path}")
             logger.debug(f"output_path:             {output_path}")
             logger.debug(f"landmask_shapefile_path: {landmask_shapefile_path}")
 
-            normprod_utils.save_landmask_file_4_geotiff(
+            normcovar_utils.save_landmask_file_4_geotiff(
                 geotiff_path,
                 landmask_shapefile_path,
                 output_path,
@@ -632,17 +641,17 @@ def fully_process_single_image_pair(
 
                 logger.info("Resampling eroded resampled landmask image")
 
-                geotiff_path = img_pair_dir / f"landmask_eroded_{erode_landmask}.tif"
+                geotiff_path = img_pair_dir / f"landmask__eroded_{erode_landmask}.tif"
                 output_path = (
                     img_pair_dir
-                    / f"landmask_eroded_{erode_landmask}_resampled_{resample_interval}_{resample_interval}.tif"
+                    / f"landmask__eroded_{erode_landmask}__resampled_{resample_interval}_{resample_interval}.tif"
                 )
 
                 logger.debug(f"geotiff_path:      {geotiff_path}")
                 logger.debug(f"output_path:       {output_path}")
                 logger.debug(f"resample_interval: {resample_interval}")
 
-                normprod_utils.resample_geotiff(
+                normcovar_utils.resample_geotiff(
                     geotiff_path,
                     output_path,
                     zoom_x=resample_interval,
@@ -655,14 +664,18 @@ def fully_process_single_image_pair(
 
     return True
 
-
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 # xarray NormProd
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------- #
 
 
+# TO DO: compute_DoB -> compute_deviation_from_local_mean
 def compute_DoB_xr(da, window):
     """Compute DoB for an xarray DataArray.
 
@@ -679,7 +692,8 @@ def compute_DoB_xr(da, window):
     result = _compute_dob_arr(da.values.astype(np.float32), window)
     return da.copy(data=result)
 
-
+# TO DO: not going to std anymore since we are only using local_var
+# names adjusted accordingly
 def compute_local_std_xr(da, window):
     """Compute local standard deviation for an xarray DataArray.
 
@@ -697,6 +711,7 @@ def compute_local_std_xr(da, window):
     return da.copy(data=result)
 
 
+# Should be fine
 def compute_landmask_xr(da, landmask_shapefile_path, erode_landmask=None):
     """Compute a landmask for an xarray DataArray by rasterizing a shapefile.
 
@@ -713,11 +728,14 @@ def compute_landmask_xr(da, landmask_shapefile_path, erode_landmask=None):
     uint8 landmask (1=land, 0=not land).
     """
     logger.info(f"Starting landmask computation (xarray), erode_landmask={erode_landmask}...")
-    result = normprod_utils.rasterize_landmask_4_xr(
+    result = normcovar_utils.rasterize_landmask_4_xr(
         da, landmask_shapefile_path, erode_landmask=erode_landmask,
     )
     return da.copy(data=result.astype(np.uint8))
 
+# TO DO: Adjust naming convention, change std to var
+# dob -> deviation_from_local_mean
+# normprod_smovar -> normcovar
 
 def compute_normprod_smovar_xr(dob1, dob2, std1, std2, window):
     """Compute normprod_smovar for xarray DataArrays.
@@ -742,7 +760,7 @@ def compute_normprod_smovar_xr(dob1, dob2, std1, std2, window):
     )
     return dob1.copy(data=result.astype(np.float32)).assign_attrs({"window": window})
 
-
+# TO DO: Adjust according to the changes above
 def fully_process_image_pair_xr(
     img1,
     img2,
@@ -880,4 +898,4 @@ def fully_process_image_pair_xr(
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# ---- End of <normprod.py> ----
+# ---- End of <normcovar.py> ----

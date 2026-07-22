@@ -1,12 +1,12 @@
-# ---- This is <normprod_utils.py> ----
+# ---- This is <normcovar_utils.py> ----
 
 """
-Module with helpers for normprod (normalized product) computation.
+Module with helpers for NormCoVar computation.
 Developed as part of the AAPP/UTAS tool for Antarctic fast ice mapping.
 
 Initial developments by A.P. Doulgeris, G. Burke, A. Fraser.
 
-Packaged by J. Lohse.
+Packaged by J. Lohse, A. Bradley, C. Adams.
 (johannes.lohse@utas.edu.au)
 """
 
@@ -29,7 +29,9 @@ import rioxarray  # registers the .rio accessor on xr.DataArray
 # -------------------------------------------------------------------------- #
 
 def check_raster_stats(filepath):
-    """Prints min, max, mean, and std of a raster file."""
+    """
+    Prints min, max, mean, and std of a raster file.
+    """
 
     filepath = pathlib.Path(filepath).resolve()
 
@@ -57,7 +59,9 @@ def check_raster_stats(filepath):
 # -------------------------------------------------------------------------- #
 
 def fill_nans(image):
-    """Fills NaNs before filtering to prevent them from growing."""
+    """
+    Fills NaNs before filtering to prevent them from growing.
+    """
 
     nan_mask = np.isnan(image)
 
@@ -76,25 +80,14 @@ def fill_nans(image):
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# NEEDED? SAME AS np.nanmean ?
-# Let's keep it for now, it works and is probably not the bottleneck for processing
-
-def nan_safe_mean_filter(values):
-    """Computes the mean of non-NaN values."""
-
-    valid_values = values[~np.isnan(values)]
-
-    return np.nan if valid_values.size == 0 else np.mean(valid_values)
-
-# -------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------- #
-
 # VERY SPECIFIC TO FILENAME CONVENTION, WILL BREAK AT THE SLIGHTEST CHANGE
 # SHOULD IDEALLY NOT BE PART OF THE PACKAGE
 # IMPLEMENTED ALTERNATIVE 'date1', 'date2' inputs in 'check_and_trim_image_pair'
 
 def extract_date_from_filename(filename):
-    """Convert date from GA S1 filename to datetime.datetime"""
+    """
+    Convert date from GA S1 filename to datetime.datetime.
+    """
 
     # Extract datestring from filename
     datestring = filename[12:27]
@@ -124,7 +117,9 @@ def extract_date_from_datestring(datestring):
 # -------------------------------------------------------------------------- #
 
 def get_valid_data_extent(ds):
-    """Compute the bounding box of the valid (non-NaN) data in a GDAL dataset."""
+    """
+    Compute the bounding box of the valid (non-NaN) data in a GDAL dataset.
+    """
 
     band = ds.GetRasterBand(1)
     nodata = band.GetNoDataValue()
@@ -166,12 +161,12 @@ def get_valid_data_extent(ds):
 def check_and_trim_image_pair(
     img_pair,
     output_dir,
-    min_temp_baseline = 11.9,
-    max_temp_baseline = 12.1,
-    output_epsg = 3031,
-    date1 = None,
-    date2 = None,
-    overwrite = False
+    min_temp_baseline=11.9,
+    max_temp_baseline=12.1,
+    output_epsg=3031,
+    date1=None,
+    date2=None,
+    overwrite=False
 ):
     """
     Check input image pair for spatial overlap and temporal baseline requirements.
@@ -404,11 +399,11 @@ def stack_2_RGB(
     img2_path,
     img3_path,
     output_path,
-    img_min = -0.5,
-    img_max = 1.0,
-    new_min = 0,
-    new_max = 255,
-    overwrite = False
+    img_min=-0.5,
+    img_max=1.0,
+    new_min=0,
+    new_max=255,
+    overwrite=False
 ):
     """
     Stack input images to 8-bit integer RGB image.
@@ -419,8 +414,8 @@ def stack_2_RGB(
     img2_path : Path to 2nd input image, used for green channel
     img3_path : Path to 3rd input image, used for blue channel
     output_path : Path to output RGB image
-    img_min : Minimum value for input images (default=-0.5 for normprod_smovar)
-    img_max : Maximum value for input images (default=1.0 normprod_smovar)
+    img_min : Minimum value for input images (default=-0.5 for NormCoVar)
+    img_max : Maximum value for input images (default=1.0 NormCoVarar)
     newMin : New minimum for RGB image channels (default=0)
     newMax : New maximum for RGB image channels (default=255)
     overwrite : Overwrite previous existing results (default=False)
@@ -518,9 +513,9 @@ def stack_2_RGB(
 def resample_geotiff(
     geotiff_path,
     output_path,
-    zoom_x = 10,
-    zoom_y = 10,
-    order = 1,
+    zoom_x=10,
+    zoom_y=10,
+    order=1,
     overwrite = False
 ):
     """
@@ -653,7 +648,10 @@ def resample_geotiff(
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-def erode_coastline(landmask_raster, erode_pixels):
+def erode_coastline(
+    landmask_raster
+    erode_pixels
+):
     """
     Shrink land inward from the coastline by `erode_pixels`.
     Interior land (far from any water) is untouched; the raster's own
@@ -912,4 +910,4 @@ def rasterize_landmask_4_xr(
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
-# ---- End of <normprod_utils.py> ----
+# ---- End of <normcovar_utils.py> ----

@@ -1,6 +1,6 @@
 # normalized_product
 
-Python library for computation of the **normalized product** (normprod) for automated mapping of landfast sea ice around Antarctica in Sentinel-1 SAR imagery.
+Python library for computation of the **normalized covariance** (NormCoVar) for automated mapping of landfast sea ice around Antarctica in Sentinel-1 SAR imagery.
 
 Original development was conducted in collaboration with the ***University of Tasmania***, ***UiT The Arctic University of Norway***, and ***Geoscience Australia***, as part of the ***Australian Antarctic Program Partnership ([AAPP])***.
 
@@ -16,8 +16,8 @@ As such, this library requires the use of Conda or Pixi for installation.
 Donwload the `environment.yaml` file and create an environment from it:
 
 ```bash
-conda create -f environment.yaml
-conda activate NORMPROD
+conda env create -f environment.yaml
+conda activate NORMCOVAR
 ```
 
 Then install the package from GitHub:
@@ -49,13 +49,11 @@ Pixi will create an environment containing all required dependencies and install
 
 ## 🚀 Usage
 
-Test scripts and usage examples are provided in the `test/` and `examples/` folders.
+Usage examples are provided in the `examples/` folder.
 
 * **examples/process_single_img_pair_locally.py:** Script that runs the entire processing chain for a single image pair from local GeoTIFF files.
 * **examples/normprod_from_stac_xarray.ipynb:** Notebook that runs the full NormProd pipeline entirely in-memory on xarray DataArrays queried from STAC — no intermediate files are written.
 * **examples/hpc_support:** Examples subfolder with setup for distributed batch processing, specifically designed for the **NCI/GADI** supercomputing environment.
-
-Unless you are developing the code further, there is no need to run or modify the contents of the `test/` folder.
 
 ---
 
