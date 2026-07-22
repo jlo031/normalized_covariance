@@ -1,4 +1,4 @@
-# normalized_product
+# normalised_covariance
 
 Python library for computation of the **normalized covariance** (NormCoVar) for automated mapping of landfast sea ice around Antarctica in Sentinel-1 SAR imagery.
 
