@@ -18,10 +18,10 @@
 # -------------------------------------------------------------------------- #
 
 # Set path to main data directory
-data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_tests/NEW_TESTS/NEW_FAST_NORMPROD"
+data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_public"
 
 # Define study site
-site: "Thwaites"
+site: "atka_bay__rel_orbit_148__2026"
 
 # Set min and max values for allowed temporal baseline
 min_temp_baseline: 11.9
@@ -41,17 +41,17 @@ window_list:
 # Delete manually if you really want to overwrite
 overwrite: false
 
-# Compute normprod locally (true/false)
-# Approx. 35 minutes per image per
+# Compute NormCoVar locally (true/false)
+# Approx. 35 minutes per image per (shorter now, still not recommended)
 # Not recommended when processing multiple image pairs!
-compute_normprod_locally: false
+compute_normcovar_locally: false
 
-# Save intermediate products during normprod_smovar computation? (true/false)
+# Save intermediate products during normcovar computation? (true/false)
 # Only needed during development or trouble-shooting
 save_intermediate_products: true
 
-# Set min/max values for normprod_smovar RGB scaling
-# This determines the dynamic normprod_smovar range that SAM will see
+# Set min/max values for normcovar RGB scaling
+# This determines the dynamic normcovar range that SAM will see
 # Published default settings are [-0.5, +1.0]
 NP_min: -0.5
 NP_max: 1.0
@@ -82,11 +82,11 @@ loglevel: DEBUG
 # PARAMETERS SPECIFIC TO DISTRIBUTED BATCH PROCESSING
 
 # Set path to your local conda.sh file
-# Required to activate anaconda environment during distributed normprod processing
+# Required to activate anaconda environment during distributed processing
 conda_sh: "/g/data/jk72/jl0818/miniconda3_jo/etc/profile.d/conda.sh"
 
-# Set name of conda environment for normprod processing
-conda_env: "NORMPROD"
+# Set name of conda environment for normcovar computation
+conda_env: "NORMCOVAR"
 
 # Set path to pbs_template file
 # Recommended to keep in your local 'config' folder
@@ -99,7 +99,7 @@ pbs_run_script: "./utils/run_single_pair_as_separate_job.py"
 # Set path to log_dir for distributed batch processing
 # Place this wherever you want to keep track of your processing
 # Individual PBS scripts will also be saved here
-pbs_log_dir: "./LOGS/new_normalisation_test/fast_NP_test/Thwaites"
+pbs_log_dir: "./LOGS/normcovar_update/Atka"
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #

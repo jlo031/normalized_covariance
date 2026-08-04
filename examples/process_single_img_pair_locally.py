@@ -4,8 +4,8 @@
 Fully process a single image pair:
     - List all images in GEOTIFF_DIR
     - Select first two images as img_pair
-    - Pre-process img_pair: normprod_utils.check_and_trim_image_pair
-    - Comnpute DoB, local std, normprod_smovar: normprod.fully_process_single_image_pair
+    - Pre-process img_pair: normcovar_utils.check_and_trim_image_pair
+    - Comnpute DoB, local std, normprod_smovar: normcovar.fully_process_single_image_pair
 
 You need to define your main data directory ('DATA_DIR') and a test site ('site').
 The code expects a 'SITE_DIR' in your main data directore ('DATA_SIR/site').
@@ -25,14 +25,14 @@ import numpy as np
 
 from osgeo import gdal
 
-from normalized_product import normprod, normprod_utils
+from normalized_product import normcovar, normcovar_utils
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
 
 # Define loglevel ["DEBUG" or "INFO"]
-##loglevel = "DEBUG"
-loglevel = "INFO"
+loglevel = "DEBUG"
+##loglevel = "INFO"
 
 logger.remove()
 logger.add(sys.stderr, level=loglevel)
@@ -44,7 +44,7 @@ logger.add(sys.stderr, level=loglevel)
 DATA_DIR = pathlib.Path("/g/data/jk72/jl0818/DATA/fast_ice_tests")
 
 # Define your current test site
-site = "Prydz"
+site = "normcovar_test__Atka"
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -88,8 +88,8 @@ logger.info(f"{img_pair[1]}")
 # -------------------------------------------------------------------------- #
 
 # Get image datestrings (set manual/from image pair if this fails due to changed file name
-date1 = (normprod_utils.extract_date_from_filename(img_pair[0].stem)).strftime("%Y%m%dT%H%M%S")
-date2 = (normprod_utils.extract_date_from_filename(img_pair[1].stem)).strftime("%Y%m%dT%H%M%S")
+date1 = (normcovar_utils.extract_date_from_filename(img_pair[0].stem)).strftime("%Y%m%dT%H%M%S")
+date2 = (normcovar_utils.extract_date_from_filename(img_pair[1].stem)).strftime("%Y%m%dT%H%M%S")
 
 # Define output_dir
 IMG_PAIR_DIR = SITE_DIR / f"S1_image_pair_{date1}_{date2}"
@@ -104,7 +104,7 @@ max_temp_baseline = 12.1
 # Output epsg
 output_epsg = 3031
 
-normprod_utils.check_and_trim_image_pair(
+normcovar_utils.check_and_trim_image_pair(
     img_pair,
     IMG_PAIR_DIR,
     min_temp_baseline = min_temp_baseline,
@@ -122,7 +122,7 @@ normprod_utils.check_and_trim_image_pair(
 window_list = [11,21,33]
 
 # Save intermediate normprod steps?
-save_intermediate_products = False
+save_intermediate_products = True
 
 # Define min/max values for normprod scaling to RGB image
 NP_min = -0.5
@@ -140,7 +140,7 @@ resample = True
 # Set resamping interval for NP RGB image and landmask
 resample_interval = 10
 
-normprod.fully_process_single_image_pair(
+normcovar.fully_process_single_image_pair(
     IMG_PAIR_DIR,
     windows = window_list,
     save_intermediate_products = save_intermediate_products,

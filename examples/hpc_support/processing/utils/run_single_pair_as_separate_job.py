@@ -1,8 +1,8 @@
 # ---- This is <run_single_pair.py> ----
 
 """
-Process normnprod_smovar for input IMG_PAIR_DIR.
-Desgined to be called as pbs job in disctirbuted processing for a full test site.
+Process normcovar for input IMG_PAIR_DIR.
+Designed to be called as pbs job in disctirbuted processing for a full test site.
 """
 
 import sys
@@ -92,9 +92,9 @@ def run_single_pair():
 
     try:
         # Import only when needed to keep the CLI snappy
-        from normalized_product import normprod
+        from normalized_product import normcovar
         
-        normprod.fully_process_single_image_pair(
+        normcovar.fully_process_single_image_pair(
             args.IMG_PAIR_DIR,
             windows = window_list,
             save_intermediate_products = args.save_intermediate_products,

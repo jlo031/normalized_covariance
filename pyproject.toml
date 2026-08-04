@@ -39,7 +39,7 @@ normalized_product = { path = ".", editable = true }
 [tool.pixi.tasks]
 export-conda = """
 pixi workspace export conda-environment environment.yaml --environment default && \
-sed -ix "s/^name: .*/name: NORMPROD/" environment.yaml; rm environment.yamlx
+sed -ix "s/^name: .*/name: NORMCOVAR/" environment.yaml; rm environment.yamlx
 """
 
 [tool.pixi.dependencies]
