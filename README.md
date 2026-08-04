@@ -65,7 +65,7 @@ For full batch processing of a complete test site, users only need to adjust the
 
 The entire batch processing chain consists of two steps:
 1.  `preprocess_full_test_site.py`: Handles initial data preparation, georegistration, checking of image pairs, and cropping to overlapping regions.
-2.  `batch_process_normprod_smovar.py`: Computes the normalized product for each valid image pair.
+2.  `batch_process_normprod_smovar.py`: Computes the normalized covariance for each valid image pair.
 
 Both scripts read settings from `config.yaml` and should not require manual code changes. All outputs are written to specific image-pair folders within the test site directory.
 
@@ -83,7 +83,7 @@ DATA_DIR/
 │   ├── IMG_PAIR_1/
 │   │   ├── georeg_1_*tif
 │   │   ├── georeg_1_*tif
-│   │   └── normprod_smovar_window_*tif
+│   │   └── normCoVar__window_*tif
 │   └── ...
 │
 └── TestSiteN/
