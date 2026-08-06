@@ -5,7 +5,7 @@ Fully process a single image pair:
     - List all images in GEOTIFF_DIR
     - Select first two images as img_pair
     - Pre-process img_pair: normcovar_utils.check_and_trim_image_pair
-    - Comnpute DoB, local std, normprod_smovar: normcovar.fully_process_single_image_pair
+    - Comnpute deviation from local mean, local std, normCoVar: normcovar.fully_process_single_image_pair
 
 You need to define your main data directory ('DATA_DIR') and a test site ('site').
 The code expects a 'SITE_DIR' in your main data directore ('DATA_SIR/site').
@@ -25,7 +25,7 @@ import numpy as np
 
 from osgeo import gdal
 
-from normalized_product import normcovar, normcovar_utils
+from normalized_covariance import normcovar, normcovar_utils
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -121,10 +121,10 @@ normcovar_utils.check_and_trim_image_pair(
 # Define window sizes to process
 window_list = [11,21,33]
 
-# Save intermediate normprod steps?
+# Save intermediate normCoVar steps?
 save_intermediate_products = True
 
-# Define min/max values for normprod scaling to RGB image
+# Define min/max values for normCoVar scaling to RGB image
 NP_min = -0.5
 NP_max = 1.0
 

@@ -21,7 +21,7 @@
 data_dir: "/g/data/jk72/jl0818/DATA/fast_ice_public"
 
 # Define study site
-site: "atka_bay__rel_orbit_148__2026"
+site: "atka_bay__rel_orbit_148"
 
 # Set min and max values for allowed temporal baseline
 min_temp_baseline: 11.9

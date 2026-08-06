@@ -24,7 +24,7 @@ from itertools import combinations
 import numpy as np
 from osgeo import gdal
 
-from normalized_product import normcovar, normcovar_utils
+from normalized_covariance import normcovar, normcovar_utils
 
 from utils.config_loader import load_config
 
