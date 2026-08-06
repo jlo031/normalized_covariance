@@ -23,7 +23,7 @@ conda activate NORMCOVAR
 Then install the package from GitHub:
 
 ```bash
-pip install git+https://github.com/jlo031/normalized_product.git
+pip install git+https://github.com/jlo031/normalized_covariance.git
 ```
 
 ---
@@ -33,14 +33,14 @@ pip install git+https://github.com/jlo031/normalized_product.git
 Create a new Pixi project and add the package directly from GitHub:
 
 ```bash
-mkdir normalized-product
-cd normalized-product
+mkdir normalized-covariance
+cd normalized-covariance
 
 pixi init
 
 pixi add gdal
 pixi add rasterio
-pixi add --pypi "normalized-product @ git+https://github.com/jlo031/normalized_product.git"
+pixi add --pypi "normalized-covariance @ git+https://github.com/jlo031/normalized_covariance.git"
 ```
 
 Pixi will create an environment containing all required dependencies and install the package from GitHub.
@@ -52,7 +52,7 @@ Pixi will create an environment containing all required dependencies and install
 Usage examples are provided in the `examples/` folder.
 
 * **examples/process_single_img_pair_locally.py:** Script that runs the entire processing chain for a single image pair from local GeoTIFF files.
-* **examples/normprod_from_stac_xarray.ipynb:** Notebook that runs the full NormProd pipeline entirely in-memory on xarray DataArrays queried from STAC — no intermediate files are written.
+* **examples/normprod_from_stac_xarray.ipynb:** Notebook that runs the full NormCoVar pipeline entirely in-memory on xarray DataArrays queried from STAC — no intermediate files are written.
 * **examples/hpc_support:** Examples subfolder with setup for distributed batch processing, specifically designed for the **NCI/GADI** supercomputing environment.
 
 ---
@@ -65,7 +65,7 @@ For full batch processing of a complete test site, users only need to adjust the
 
 The entire batch processing chain consists of two steps:
 1.  `preprocess_full_test_site.py`: Handles initial data preparation, georegistration, checking of image pairs, and cropping to overlapping regions.
-2.  `batch_process_normprod_smovar.py`: Computes the normalized covariance for each valid image pair.
+2.  `batch_process_normcovar.py`: Computes the normalized covariance for each valid image pair.
 
 Both scripts read settings from `config.yaml` and should not require manual code changes. All outputs are written to specific image-pair folders within the test site directory.
 

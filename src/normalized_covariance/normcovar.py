@@ -20,8 +20,8 @@ from osgeo import gdal
 
 import xarray as xr
 
-from normalized_product import normcovar_utils
-from normalized_product.xarray_utils import resample_xr
+from normalized_covariance import normcovar_utils
+from normalized_covariance.xarray_utils import resample_xr
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #

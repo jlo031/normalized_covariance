@@ -3805,7 +3805,7 @@ packages:
   sha256: f5dfa702f3f81f6a03857e9a19e2ba578c0946a4ad417b4c50a24d7ba641fe01
   requires_python: '>=3.5'
 - pypi: ./
-  name: normalized-product
+  name: normalized-covariance
   version: 0.2.1
   sha256: 2ab68ce5e49ea83d9f3192946dee3b06a31078cf09c844fb6ac53dfa4dd08d24
   requires_dist:

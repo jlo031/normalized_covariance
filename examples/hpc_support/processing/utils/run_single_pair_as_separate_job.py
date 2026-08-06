@@ -92,7 +92,7 @@ def run_single_pair():
 
     try:
         # Import only when needed to keep the CLI snappy
-        from normalized_product import normcovar
+        from normalized_covariance import normcovar
         
         normcovar.fully_process_single_image_pair(
             args.IMG_PAIR_DIR,
