@@ -3,7 +3,7 @@ from scipy.ndimage import uniform_filter, zoom
 import xarray as xr
 from affine import Affine
 
-
+from loguru import logger
 
 # Adapted from https://stackoverflow.com/questions/39785970/speckle-lee-filter-in-python
 def lee_filter(img, size):
@@ -63,6 +63,7 @@ def resample_xr(
     order,
     clip_range=None,
     dtype=None,
+    trim_for_clean_pixel_size=True,
 ):
     """
     Resample a georeferenced xr.DataArray and return a new xr.DataArray on
@@ -91,6 +92,24 @@ def resample_xr(
     if dtype is None:
         dtype = da.dtype
 
+    orig_ny, orig_nx = da.sizes[y_dim], da.sizes[x_dim]
+
+
+    # Crop input so dimensions divide evenly by the zoom factor —
+    # guarantees zoom() produces an exact orig/zoom_factor output shape,
+    # with no internal rounding, so pixel size stays clean.
+    # stops the output xr having size of 399.7364x400.00263 for example
+    if trim_for_clean_pixel_size:
+        trim_ny = orig_ny - (orig_ny % zoom_y)
+        trim_nx = orig_nx - (orig_nx % zoom_x)
+        if trim_ny != orig_ny or trim_nx != orig_nx:
+            logger.warning(
+                f"Trimming {orig_ny - trim_ny} row(s) / {orig_nx - trim_nx} col(s) "
+                f"so dimensions divide evenly by zoom factor (clean pixel size)."
+            )
+            da = da.isel({y_dim: slice(0, trim_ny), x_dim: slice(0, trim_nx)})
+            orig_ny, orig_nx = trim_ny, trim_nx
+
     # Resample
     zoom_factors = (1 / zoom_y, 1 / zoom_x, 1) if has_band else (1 / zoom_y, 1 / zoom_x)
     resampled_arr = zoom(da.values, zoom=zoom_factors, order=order)
@@ -100,7 +119,6 @@ def resample_xr(
     resampled_arr = resampled_arr.astype(dtype)
 
     out_ny, out_nx = resampled_arr.shape[:2]
-    orig_ny, orig_nx = da.sizes[y_dim], da.sizes[x_dim]
 
     # Build a new transform. Scale pixel size (using the output
     # shape, not the nominal zoom factors) so the same ground extent is
