@@ -1,7 +1,9 @@
 import numpy as np
 from scipy.ndimage import uniform_filter
 import xarray as xr
+import odc.geo.xr  # registers .odc. accessor on xarrays
 
+from loguru import logger
 
 # Adapted from https://stackoverflow.com/questions/39785970/speckle-lee-filter-in-python
 def lee_filter(img, size):
@@ -53,3 +55,13 @@ def apply_lee_filter(data_array, size=7):
     filtered_data_masked = xr.where(np.isnan(data_array), np.nan, filtered_data)
 
     return filtered_data_masked
+
+
+def zoomed_geobox(da, zoom_y, zoom_x):
+    """
+    GeoBox covering the same extent as `da`, coarsened by zoom_y/zoom_x
+    (>1 coarsens resolution, i.e. fewer/bigger pixels).
+    """
+    orig_ny, orig_nx = da.odc.geobox.shape
+    new_shape = (max(1, round(orig_ny / zoom_y)), max(1, round(orig_nx / zoom_x)))
+    return da.odc.geobox.zoom_to(shape=new_shape)

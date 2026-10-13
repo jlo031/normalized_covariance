@@ -20,7 +20,10 @@ from osgeo import gdal
 
 import xarray as xr
 
+from odc.geo.xr import xr_reproject
+
 from normalized_covariance import normcovar_utils
+from normalized_covariance.xarray_utils import zoomed_geobox
 
 # -------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------- #
@@ -767,10 +770,9 @@ def fully_process_image_pair_xr(
     resample_rgb = True,
     zoom_x = 10,
     zoom_y = 10,
-    resample_method = "linear",
+    resample_method = "bilinear",
     landmask_shapefile_path = None,
     erode_landmask = None,
-    resample_landmask = True,
     apply_landmask_to_rgb = False,
 ):
     """
@@ -793,9 +795,9 @@ def fully_process_image_pair_xr(
                  resolution (default=1)
     zoom_y     : resampling factor in y-direction for rgb; >1 coarsens
                  resolution (default=1)
-    resample_method : interpolation method for resampling rgb, mapped to a
-                 scipy.ndimage.zoom order ("nearest"->0, "linear"/"bilinear"->1,
-                 "cubic"->3). Default="linear".
+    resample_method : interpolation method for resampling rgb, one of 
+                [“average”, “bilinear”, “cubic”, “cubic_spline”, “lanczos”, 
+                “mode”, “gauss”, “max”, “min”, “med”, “q1”, “q3”]. Default="bilinear".
     landmask_shapefile_path : path to landmask shapefile. If given, a landmask
                  is rasterized onto img1's grid (default=None, no landmask).
     erode_landmask : erode landmask by number of pixels (default=None). Only
@@ -804,22 +806,22 @@ def fully_process_image_pair_xr(
 
     Returns
     -------
-    dict with keys:
+    dict with keys (all values are xr.DataArray, preserving spatial coords/CRS):
         "normcovar" : dict[int, xr.DataArray]  — one DataArray per window
-        "rgb"             : np.ndarray (H, W, 3) uint8 — false-colour composite
+        "rgb"             : xr.DataArray (y, x, band) uint8 — false-colour composite
                            (only present when len(windows) == 3). Scaled between 0
                            and 255 by default.
-        "rgb_resampled"   : rgb image resampled based on setting (only present 
-                            when resample_rgb = True). 
+        "rgb_resampled"   : rgb DataArray resampled based on setting (only present
+                            when resample_rgb = True.
         "landmask"        : xr.DataArray uint8 — rasterized landmask (only present
                            when landmask_shapefile_path is given)
-        "landmask_resampled"   : landmask image resampled based on setting (only present 
-                            when resample_landmask = Truem and landmask_shapefile_path 
-                            is given). 
-        "rgb_landmasked"  : The rgb image with the landmask applied. (only present 
+        "landmask_resampled"   : landmask DataArray resampled based on setting (only present
+                            when resample_rgb = True and landmask_shapefile_path
+                            is given).
+        "rgb_landmasked"  : The rgb DataArray with the landmask applied. (only present
                             when landmask and apply_landmask_to_rgb = True)
-        "rgb_resampled_landmasked"  : The rgb resampled image with the landmask applied. 
-                            (only present when landmask, resample_rgb = True, 
+        "rgb_resampled_landmasked"  : The rgb resampled DataArray with the landmask applied.
+                            (only present when landmask, resample_rgb = True,
                             apply_landmask_to_rgb = True)
     """
 
@@ -841,26 +843,44 @@ def fully_process_image_pair_xr(
 
     results = {"normcovar": normcovar_results}
 
+    y_dim, x_dim = img1.dims[0], img1.dims[1]
+
     # False-colour RGB stack (requires exactly 3 windows)
     if len(windows) == 3:
         logger.info("Stacking normcovar to false-colour RGB...")
 
         def _scale(arr):
-            return ((np.clip(arr, NP_min, NP_max) - NP_min) / (NP_max - NP_min) * (rgb_max-rgb_min)).astype(np.uint8)
+            return ((np.clip(arr, NP_min, NP_max) - NP_min) / (NP_max - NP_min) * (rgb_max - rgb_min)).astype(np.uint8)
 
-        results["rgb"] = np.dstack([
+        rgb_arr = np.dstack([
             _scale(normcovar_results[windows[0]].values),
             _scale(normcovar_results[windows[1]].values),
             _scale(normcovar_results[windows[2]].values),
         ])
 
+        logger.info("Converting rgb to xr.DataArray...")
+        results["rgb"] = xr.DataArray(
+            rgb_arr,
+            dims=(y_dim, x_dim, "band"),
+            coords={
+                y_dim: img1.coords[y_dim],
+                x_dim: img1.coords[x_dim],
+                "band": ["R", "G", "B"],
+            },
+            attrs=img1.attrs,
+        )
+        if hasattr(img1, "rio"):
+            results["rgb"] = results["rgb"].rio.write_crs(img1.rio.crs)
+
         if resample_rgb and (zoom_x != 1 or zoom_y != 1):
             logger.info(f"Resampling rgb by zoom_x={zoom_x}, zoom_y={zoom_y} (method={resample_method})...")
-            order_map = {"nearest": 0, "linear": 1, "bilinear": 1, "cubic": 3}
-            order = order_map.get(resample_method, 1)
-            rgb_resampled = zoom(results["rgb"], zoom=(1 / zoom_y, 1 / zoom_x, 1), order=order)
-            results["rgb_resampled"] = np.clip(rgb_resampled, 0, 255).astype(np.uint8)
-
+            results["rgb_resampled"] = xr_reproject(
+                results["rgb"],
+                how=zoomed_geobox(results["rgb"], zoom_y, zoom_x),
+                resampling=resample_method,
+                dst_nodata=None,
+                dtype=np.uint8,
+            )
     else:
         logger.warning(f"Expected 3 windows for RGB stack, got {len(windows)} — skipping RGB.")
 
@@ -868,18 +888,27 @@ def fully_process_image_pair_xr(
     if landmask_shapefile_path is not None:
         logger.info("Computing landmask...")
         results["landmask"] = compute_landmask_xr(img1, landmask_shapefile_path, erode_landmask=erode_landmask)
-        if apply_landmask_to_rgb:
+        if apply_landmask_to_rgb and "rgb" not in results:
+            logger.warning("apply_landmask_to_rgb=True but no 'rgb' was built (windows != 3), skipping rgb_landmasked.")
+        if apply_landmask_to_rgb and "rgb" in results:
             rgb_landmasked = results["rgb"].copy()
-            rgb_landmasked[results["landmask"] == 1] = 0 
+            rgb_landmasked = rgb_landmasked.where(results["landmask"] != 1, 0).astype(np.uint8)
             results["rgb_landmasked"] = rgb_landmasked
-        if resample_landmask and (zoom_x != 1 or zoom_y != 1):
-            logger.info(f"Resampling landmask by zoom_x={zoom_x}, zoom_y={zoom_y} (method={resample_method})...")
-            order = order_map.get(resample_method, 1)
-            landmask_resampled = zoom(results["landmask"].values, zoom=(1 / zoom_y, 1 / zoom_x), order=0)
-            results["landmask_resampled"] = landmask_resampled.astype(np.uint8)
-            if apply_landmask_to_rgb:
+        if resample_rgb and (zoom_x != 1 or zoom_y != 1):
+            logger.info(f"Resampling landmask by zoom_x={zoom_x}, zoom_y={zoom_y} (method=nearest)...")
+            results["landmask_resampled"] = xr_reproject(
+                results["landmask"],
+                how=zoomed_geobox(results["landmask"], zoom_y, zoom_x),
+                resampling="nearest",  # nearest neighbour for binary landmask
+                dst_nodata=None,
+                dtype=np.uint8,
+            )
+
+            if apply_landmask_to_rgb and "rgb_resampled" in results:
                 rgb_resampled_landmasked = results["rgb_resampled"].copy()
-                rgb_resampled_landmasked[results["landmask_resampled"] == 1] = 0 
+                rgb_resampled_landmasked = rgb_resampled_landmasked.where(
+                    results["landmask_resampled"] != 1, 0
+                ).astype(np.uint8)
                 results["rgb_resampled_landmasked"] = rgb_resampled_landmasked
 
     logger.info("Finished full normprod processing chain (xarray).")
